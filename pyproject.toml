@@ -1,0 +1,152 @@
+[project]
+name = "segmenta-mcp"
+version = "0.0.1"
+description = "Server MCP (Model Context Protocol) per Segmenta Marketing — Custom Connector LATAM/MX/US/ES per Claude/ChatGPT"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+    { name = "Claudio (Segmenta Marketing)", email = "hola@segmentamarketing.com" }
+]
+keywords = ["mcp", "model-context-protocol", "marketing", "latam", "lead-generation"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Internet :: WWW/HTTP :: HTTP Servers",
+]
+
+dependencies = [
+    # Core MCP framework
+    "fastmcp>=3.2.0",
+    # Validation & schema
+    "pydantic>=2.6",
+    "pydantic-settings>=2.2",
+    # ASGI (embedded da fastmcp ma esplicito)
+    "starlette>=0.36",
+    "uvicorn[standard]>=0.27",
+    # HTTP client for integrations
+    "httpx>=0.27",
+    # Auth
+    "authlib>=1.3",
+    "cryptography>=42",
+    # State & rate limit
+    "redis>=5.0",
+    # Web scraping (Tier 2 diagnostico_seo_express)
+    "beautifulsoup4>=4.12",
+    "lxml>=5.0",
+    # Logging & observability
+    "structlog>=24.1",
+    "prometheus-client>=0.20",
+    # Email send (Resend, scelto M0.2.1)
+    "resend>=2.0",
+    # Retry / circuit breaker
+    "tenacity>=8.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.23",
+    "pytest-cov>=4.1",
+    "pytest-httpx>=0.30",
+    "ruff>=0.5",
+    "mypy>=1.10",
+    "types-beautifulsoup4",
+]
+
+[project.urls]
+Homepage = "https://segmentamarketing.com"
+Repository = "https://github.com/segmenta-ai/segmenta-mcp"
+Issues = "https://github.com/segmenta-ai/segmenta-mcp/issues"
+Documentation = "https://github.com/segmenta-ai/segmenta-mcp/tree/main/Docs/blueprint"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/segmenta_mcp"]
+
+# ===== ruff (D-C-002, D-C-008) =====
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "N",    # pep8-naming
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "C4",   # flake8-comprehensions
+    "SIM",  # flake8-simplify
+    "ARG",  # flake8-unused-arguments
+    "PTH",  # flake8-use-pathlib
+    "ERA",  # flake8-eradicate (no commented-out code)
+    "RUF",  # ruff-specific
+]
+ignore = [
+    "E501",  # line-length (handled by formatter)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ARG", "B"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+# ===== mypy strict (D-C-003) =====
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+
+[[tool.mypy.overrides]]
+module = ["resend.*", "authlib.*"]
+ignore_missing_imports = true
+
+# ===== pytest (D-C-012) =====
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src/segmenta_mcp",
+    "--cov-report=term-missing",
+    "--cov-report=xml",
+    "--cov-fail-under=80",
+]
+markers = [
+    "integration: integration tests (require external mocks)",
+    "slow: slow tests (skip in PR CI, run in nightly)",
+]
+
+[tool.coverage.run]
+source = ["src/segmenta_mcp"]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "if __name__ == .__main__.:",
+]

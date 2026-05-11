@@ -1,0 +1,78 @@
+# --- Secrets (NEVER commit) ---
+.env
+.env.local
+.env.*.local
+jwt_private.pem
+jwt_public.pem
+*.key
+*.pem
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# --- uv ---
+.venv/
+.python-version
+
+# --- Test / coverage ---
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.cover
+.hypothesis/
+.tox/
+.nox/
+
+# --- IDE / editor ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Docker / runtime data ---
+data_runtime/
+caddy_data/
+caddy_config/
+
+# --- Local dev ---
+*.local
+.direnv/
+
+# --- Claude / agent traces (sessione-specifici) ---
+.claude/

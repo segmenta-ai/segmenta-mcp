@@ -94,7 +94,8 @@ Stack: 1 VM ARM Ampere A1 (4 vCPU, 24GB RAM) + Docker Compose + Caddy reverse pr
 # 1. Provision VM Oracle (Console Oracle web, ~30 min)
 #    Image: Ubuntu 22.04 Minimal aarch64
 #    Shape: VM.Standard.A1.Flex (4 OCPU + 24GB RAM)
-#    Region: sa-saopaulo-1 (~80ms da MX) o us-phoenix-1
+#    Region: mx-queretaro-1 (Mexico Central, ~5-30ms da MX)
+#    Fallback se ARM A1 capacity esaurita: mx-monterrey-1 o sa-saopaulo-1
 #    Storage: 50GB boot + 100GB block (Always Free quota)
 
 # 2. SSH iniziale + bootstrap Linux (~1h)

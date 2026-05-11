@@ -1,0 +1,49 @@
+# Test, docs, dev tooling
+tests/
+Docs/
+scripts/
+.github/
+.vscode/
+.git/
+.gitignore
+.gitattributes
+.env
+.env.local
+.env.*.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+*.egg-info/
+.tox/
+
+# uv
+.venv/
+.python-version
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor
+*.swp
+*.swo
+*~
+.idea/
+
+# Other
+README.md
+CHANGELOG.md
+LICENSE
+SECURITY.md
+CONTRIBUTING.md

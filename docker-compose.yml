@@ -1,0 +1,78 @@
+# Segmenta MCP Server — stack production su Oracle Cloud Always Free VM
+# Path target sulla VM: /opt/segmenta-mcp/docker-compose.yml
+# Usage:
+#   docker compose up -d
+#   docker compose logs -f app
+
+services:
+  app:
+    image: ghcr.io/segmenta-ai/segmenta-mcp:latest
+    container_name: segmenta-mcp-app
+    restart: unless-stopped
+    env_file: .env  # mode 600, owner ubuntu, NEVER committed
+    environment:
+      ENV: production
+      LOG_LEVEL: INFO
+      PORT: "8000"
+      HOST: 0.0.0.0
+    volumes:
+      - app_data:/app/data_runtime
+      - ./logs:/app/logs
+    networks:
+      - mcp_internal
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://localhost:8000/health',timeout=5).status==200 else 1)"
+      interval: 30s
+      timeout: 10s
+      start_period: 40s
+      retries: 3
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+    mem_limit: 512m
+    cpus: 1.0
+
+  caddy:
+    image: caddy:2.8-alpine
+    container_name: segmenta-mcp-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - mcp_internal
+    depends_on:
+      - app
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: segmenta-mcp-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${HOME}/.docker/config.json:/config.json:ro
+    environment:
+      WATCHTOWER_POLL_INTERVAL: 300
+      WATCHTOWER_LABEL_ENABLE: "true"
+      WATCHTOWER_CLEANUP: "true"
+      WATCHTOWER_INCLUDE_RESTARTING: "true"
+    networks:
+      - mcp_internal
+
+networks:
+  mcp_internal:
+    driver: bridge
+
+volumes:
+  app_data:
+  caddy_data:
+  caddy_config:

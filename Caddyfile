@@ -1,0 +1,38 @@
+# Segmenta MCP Server — reverse proxy + TLS auto via Let's Encrypt
+# Path target sulla VM: /opt/segmenta-mcp/Caddyfile
+
+{
+    # Email per Let's Encrypt expiration notifications
+    email claudio@segmentamarketing.com
+}
+
+mcp.segmentamarketing.com {
+    encode gzip zstd
+
+    reverse_proxy app:8000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+
+        health_uri /health
+        health_interval 30s
+        health_timeout 10s
+    }
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        -Server
+    }
+
+    log {
+        output file /var/log/caddy/access.log {
+            roll_size 100mb
+            roll_keep 7
+            roll_keep_for 720h
+        }
+        format json
+    }
+}
