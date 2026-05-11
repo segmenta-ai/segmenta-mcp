@@ -7,7 +7,7 @@
 | **Data** | 2026-05-11 |
 | **Status** | Approvato (post harmony pass M0.3) |
 | **File n.** | 10 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.2 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4 |
 | **File correlati** | `04-TOOLS-TIER1.md`, `11-ANALYTICS.md`, `MILESTONES.md` |
 
 ---

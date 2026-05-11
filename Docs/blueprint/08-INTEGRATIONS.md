@@ -3,11 +3,11 @@
 | Campo | Valore |
 |---|---|
 | **Progetto** | Segmenta MCP Server |
-| **Versione documento** | 1.2 |
+| **Versione documento** | 1.3 |
 | **Data** | 2026-05-11 |
-| **Status** | Approvato (post harmony pass M0.3 + chiusura DECISION-OPEN-004) |
+| **Status** | Approvato (post ricalibrazione hosting Oracle Cloud) |
 | **File n.** | 08 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.3, `01-ARCHITECTURE.md` v1.1 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4, `01-ARCHITECTURE.md` v1.3 |
 | **File correlati** | `05-TOOLS-TIER2.md`, `06-TOOLS-TIER3.md`, `07-AUTH-OAUTH.md`, `09-DEPLOYMENT.md` |
 
 ---
@@ -150,7 +150,7 @@ class BookingProvider(Protocol):
 
 **Endpoint base**: `https://api.cal.com/v2/`
 
-**Autenticazione**: API key in header `Authorization: Bearer <CALCOM_API_KEY>`. Key in Fly.io secrets (`flyctl secrets set CALCOM_API_KEY=...`).
+**Autenticazione**: API key in header `Authorization: Bearer <CALCOM_API_KEY>`. Key in `/opt/segmenta-mcp/.env` (mode 600, owner ubuntu). Update: SSH via Tailscale + `vim .env` + `docker compose up -d app` (graceful restart ~3s).
 
 **Endpoint usati**:
 
@@ -659,7 +659,7 @@ Notifiche real-time al team Segmenta su events critici: lead capture Tier 2/3, f
 
 ### 7.2 Setup
 
-Slack Incoming Webhook URL configurato in Fly.io secrets: `SLACK_WEBHOOK_URL_LEADS_MCP`, `SLACK_WEBHOOK_URL_ALERTS_MCP`.
+Slack Incoming Webhook URL configurato in `/opt/segmenta-mcp/.env`: `SLACK_WEBHOOK_URL_LEADS_MCP`, `SLACK_WEBHOOK_URL_ALERTS_MCP`.
 
 Channel target:
 - `#leads-mcp`: lead capture (silent during off-hours, ma notifica visible)
@@ -974,6 +974,7 @@ ipinfo.io free tier $0/mese fino a 50k requests/mese. Sufficiente.
 | 1.0 | 2026-05-10 | Claude (proposta) + Claudio (revisione) | Prima stesura completa: booking (Cal.com), CRM (HubSpot), email (Resend), Slack webhook, WhatsApp link, SEO data API (DataForSEO), geo IP. Contratti API target, retry/fallback strategies, cost caps. |
 | 1.1 | 2026-05-11 | Claude (harmony pass M0.3) + Claudio (review) | **HC-004**: aggiunti disclaimer "Adapter Pattern v1" all'inizio di sez. 4 (booking), 5 (CRM), 6 (email), 9 (SEO data). Chiarisce che provider "default candidato" sono dietro Pydantic Protocol — sostituire 1 file = swap completo, tool layer invariato. DECISION-OPEN-002/003/004/T3-002 restano aperte ma non bloccano coding M2 grazie ad adapter pattern. |
 | 1.2 | 2026-05-11 | Claude + Claudio (chiusura M0.2.1) | **DECISION-OPEN-004 chiusa**: Resend confermato come email provider v1 (free tier 100/giorno = $0/mese, coerente con D-MP-002 v1.3 target costo $0). Sez. 6.1 riscritta con razionale e test deliverability obbligatorio in M2.3.10. DECISION-OPEN-002 (Cal.com vs Calendly) e -003 (HubSpot vs Pipedrive) restano aperte — gestite da adapter pattern, decisione differita a M2 con Merari. |
+| 1.3 | 2026-05-11 | Claude + Claudio (ricalibrazione hosting Oracle Cloud) | **Secrets storage aggiornato**: riferimenti a "Fly.io secrets" sostituiti con "`/opt/segmenta-mcp/.env` (mode 600) + SSH Tailscale + `docker compose up -d app`" coerente con D-MP-002 v1.4. Sez. 4 (Cal.com), sez. 7 (Slack webhook) aggiornate. Resto invariato. |
 
 ---
 
@@ -983,4 +984,4 @@ Harmony pass M0.3 (2026-05-11): chiarita strategia adapter pattern. Chiusura M0.
 
 ---
 
-**Fine 08-INTEGRATIONS.md v1.2.**
+**Fine 08-INTEGRATIONS.md v1.3.**

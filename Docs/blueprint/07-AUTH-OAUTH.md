@@ -7,7 +7,7 @@
 | **Data** | 2026-05-10 |
 | **Status** | Draft (in revisione) |
 | **File n.** | 07 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.3, `01-ARCHITECTURE.md` v1.2 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4, `01-ARCHITECTURE.md` v1.3 |
 | **File correlati** | `05-TOOLS-TIER2.md`, `06-TOOLS-TIER3.md`, `08-INTEGRATIONS.md`, `09-DEPLOYMENT.md` |
 
 ---
@@ -616,8 +616,8 @@ Motivazioni:
 - Standard industriale per produzione.
 
 Configurazione:
-- Key pair generato all'avvio del server o pre-provisioned in Fly.io env.
-- Private key in Fly.io env var `JWT_PRIVATE_KEY` (PEM format).
+- Key pair generato all'avvio del server o pre-provisioned in Oracle Cloud env.
+- Private key in `/opt/segmenta-mcp/.env` come `JWT_PRIVATE_KEY` (PEM format multi-line, escape newlines come `\n`). File mode 600 (vedi `09-DEPLOYMENT.md` sez. 9).
 - Public key esposta via `/.well-known/jwks.json`.
 - Rotation key ogni 90 giorni (manuale in v1, automatica in v2).
 
@@ -837,11 +837,11 @@ In v1: tutto manuale via email a `privacidad@segmentamarketing.com`. SLA rispost
 
 ### 12.3 Cross-border transfer
 
-Server hostato Fly.io US. Utenti EU che usano i tool gated → loro dati transitano US.
+Server hostato su Oracle Cloud (region São Paulo `sa-saopaulo-1` Brazil — primary, o Phoenix US fallback). Utenti EU che usano i tool gated → loro dati transitano per Brasile o US, mai per UE in v1.
 
 Coperto da:
 - Privacy policy MCP esplicita su questo punto.
-- Standard Contractual Clauses (SCC) con Fly.io (auto-applicate dal loro Terms).
+- Standard Contractual Clauses (SCC) con Oracle Cloud (auto-applicate dal loro Terms).
 - Consenso esplicito utente al primo magic link click (informativa pre-form).
 
 ### 12.4 Notifica violazione

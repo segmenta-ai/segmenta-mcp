@@ -7,7 +7,7 @@
 | **Data** | 2026-05-11 |
 | **Status** | Approvato (post harmony pass M0.3) |
 | **File n.** | 03 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.2, `01-ARCHITECTURE.md` v1.0 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4, `01-ARCHITECTURE.md` v1.3 |
 | **File correlati** | `04-TOOLS-TIER1.md`, `05-TOOLS-TIER2.md`, `06-TOOLS-TIER3.md`, `08-INTEGRATIONS.md` |
 
 ---
@@ -919,10 +919,10 @@ Il workflow è uguale a quello del codice. Disciplina che evita: dati inconsiste
 
 ### 9.3 Cache invalidation
 
-I JSON sono caricati in memoria all'avvio del server. **Non c'è hot reload in v1**: cambi richiedono restart del container (automatico via Fly.io dopo deploy).
+I JSON sono caricati in memoria all'avvio del server. **Non c'è hot reload in v1**: cambi richiedono restart del container (automatico via Watchtower polling ghcr.io ogni 5 min dopo image push, oppure manuale con `docker compose up -d app`).
 
 Il restart è ~5 secondi. Per Tier 1 (in-memory lookup) significa ~5s di errori 503 percepiti dall'utente. Mitigazione:
-- Fly.io esegue rolling deploy (vecchio container risponde finché nuovo è pronto).
+- Watchtower esegue restart graceful (vecchio container drained da Caddy mentre nuovo si avvia).
 - Tempo effettivo di disservizio: < 1 secondo nei deploy normali.
 
 Hot reload valutato in v2 se la frequenza di update dati cresce.
@@ -1005,7 +1005,7 @@ Il server, all'avvio, carica e valida tutti i JSON. Se uno qualunque fallisce:
 exit code 1
 ```
 
-Fly.io riavvia il container, fallisce di nuovo, dopo 3 retry mette in `unhealthy` → notifica a Claudio. Mai stato silenziosamente broken.
+Docker `restart: unless-stopped` policy riavvia il container, fallisce di nuovo, dopo 5 retry il container resta in stato `restarting` (loop). Caddy upstream check fallisce → 502/503 → UptimeRobot alert + Slack notify. Mai stato silenziosamente broken.
 
 ### 10.3 Validazione runtime per tool input
 

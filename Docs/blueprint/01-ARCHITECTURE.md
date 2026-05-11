@@ -3,11 +3,11 @@
 | Campo | Valore |
 |---|---|
 | **Progetto** | Segmenta MCP Server |
-| **Versione documento** | 1.2 |
+| **Versione documento** | 1.3 |
 | **Data** | 2026-05-11 |
-| **Status** | Approvato (post harmony pass M0.3 + chiusura M0.2.1) |
+| **Status** | Approvato (post ricalibrazione hosting Fly.io → Oracle Cloud) |
 | **File n.** | 01 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.3 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4 |
 | **File correlati** | `02-CONVENTIONS.md`, `03-DATA-MODEL.md`, `04-TOOLS-TIER1.md` |
 
 ---
@@ -66,20 +66,23 @@ Ogni tool call genera almeno una struttura log standard (vedi sez. 7). Ogni erro
 | Cache / state | Redis | 7.x | Rate limiting, idempotency keys, OAuth session store. |
 | Email transactional | (vedi DECISION-OPEN-004) | - | Resend / SendGrid / Mailgun decisione M2. |
 | Logging | `structlog` | 24.x | JSON logging strutturato, correlation IDs, livelli configurabili. |
-| Metrics | `prometheus_client` | 0.20 | Standard de facto per metriche Python, scraping da Fly.io. |
+| Metrics | `prometheus_client` | 0.20 | Standard de facto per metriche Python. Esposte su `/metrics`, scrape esterno opzionale (M4+: Grafana Cloud free o Prometheus self-hosted in Docker stack). |
 | Test framework | `pytest` + `pytest-asyncio` | 8.x / 0.23 | Standard de facto. |
 
 ### 3.2 Stack di deploy
 
 | Layer | Tecnologia | Motivazione |
 |---|---|---|
-| Containerization | Docker | Standard portabile, supporto Fly.io nativo. |
-| Hosting compute | Fly.io | Free tier sufficiente per partire, dashboard semplice, supporto Dockerfile, dominio custom + HTTPS automatico. (Dettagli e alternative in `09-DEPLOYMENT.md`.) |
-| Hosting Redis | Upstash Redis (free tier 10k cmd/giorno, 256 MB) | Provider esterno, free tier sufficiente M1-M3. Fly.io non ha Redis add-on nativo (a differenza di Railway). |
-| DNS | Provider attuale di `segmentamarketing.com` (presunto Cloudflare o Hostinger) | Nessun cambiamento. CNAME su `mcp` subdomain. |
-| TLS | Let's Encrypt via Fly.io | Automatico, no manutenzione. |
-| CI/CD | GitHub Actions | Standard, integrazione nativa con repo pubblico. (Dettagli in `09-DEPLOYMENT.md`.) |
-| Monitoring | Fly.io built-in + UptimeRobot per probe esterno | Gratis, sufficiente in v1. |
+| Containerization | Docker + Docker Compose | Standard portabile, single-host orchestration sulla VM Oracle. |
+| Hosting compute | **Oracle Cloud Always Free** (1 VM ARM Ampere A1, 4 vCPU + 24GB RAM) | $0/mese **perpetuo**. Setup ~3-4h, manutenzione ~15 min/mese. (Dettagli e alternative in `09-DEPLOYMENT.md` sez. 4.) |
+| Reverse proxy + TLS | Caddy 2.8 (in container Docker) | HTTPS auto via Let's Encrypt, HSTS, HTTP/2, zero config dopo install. |
+| Hosting Redis | Upstash Redis (free tier 10k cmd/giorno, 256 MB). Alternativa M3+: Redis self-hosted in container sulla stessa VM Oracle (24GB RAM oversize) | Provider esterno per v1 (semplicità setup). |
+| DNS | Provider attuale di `segmentamarketing.com` (presunto Cloudflare o Hostinger) | Nessun cambiamento. A record verso IP pubblico Oracle VPS. |
+| Container registry | GitHub Container Registry (ghcr.io) | Free per repo pubblici (D-MP-008). Image pubblicata via GitHub Actions. |
+| Auto-update container | Watchtower (in container) | Polling ghcr.io ogni 5 min, restart graceful con nuovo image. |
+| Remote SSH | Tailscale free | SSH sicuro alla VPS senza esporre porta 22 al pubblico. |
+| CI/CD | GitHub Actions | Standard, integrazione nativa con repo pubblico. Build + push image; deploy via Watchtower polling. (Dettagli in `09-DEPLOYMENT.md`.) |
+| Monitoring | Caddy access log + Docker logs + UptimeRobot probe esterno | Gratis, sufficiente in v1. |
 
 ### 3.3 Stack escluso (e perché)
 
@@ -304,7 +307,7 @@ Questa è una scelta esplicita: **proteggere l'esca a costo della conversione**,
 
 ### 7.1 Logging
 
-**Formato**: JSON strutturato via `structlog`, una linea per evento. Output stdout (cattura Fly.io).
+**Formato**: JSON strutturato via `structlog`, una linea per evento. Output stdout container → Docker logs driver `json-file` (rotation 10MB × 3 file) sulla VM Oracle.
 
 **Campi obbligatori in ogni log line**:
 ```json
@@ -352,7 +355,7 @@ Esposte su `/metrics` in formato Prometheus. Le metriche minime in v1:
 | `mcp_integration_latency_seconds` | Histogram | `integration` | Latency integrazioni esterne. |
 | `mcp_active_oauth_sessions` | Gauge | - | Sessioni OAuth attive (Tier 2/3). |
 
-In M4 saranno scraped da una dashboard interna (vedi `11-ANALYTICS.md`). In v1 sono esposte ma non visualizzate (sufficient: Fly.io dashboard built-in).
+In M4 saranno scraped da una dashboard interna (vedi `11-ANALYTICS.md`). In v1 sono esposte ma non visualizzate (sufficient: SSH Tailscale + `htop`/`docker stats` + Oracle Cloud Console per metriche VM-level).
 
 ### 7.3 Tracing
 
@@ -364,7 +367,7 @@ In v2/M5 si valuta: OpenTelemetry per spans distribuiti se la complessità delle
 
 In v1: alerting minimo. Tre canali:
 - **UptimeRobot** ping `/health` ogni 5 min, alert via email se 2 fallimenti consecutivi.
-- **Fly.io dashboard**: alert su CPU > 80% per > 5 min, memory > 80%.
+- **Oracle Cloud Console** + alert email: CPU > 80% per > 5 min, memory > 80%, disk > 80%.
 - **Custom**: log line con livello `CRITICAL` triggera webhook a Slack del team Segmenta (in M2, con setup CRM).
 
 In M5/v2: integrazione Sentry o equivalente per error tracking aggregato.
@@ -379,18 +382,18 @@ Le minacce realisticamente affrontabili in v1:
 
 | Minaccia | Probabilità | Impatto | Contromisura |
 |---|---|---|---|
-| Rate limit abuse / DOS amatoriale | Media | Basso | Rate limit per IP, Cloudflare in front (gestito da Fly.io). |
+| Rate limit abuse / DOS amatoriale | Media | Basso | Rate limit per IP nel server FastMCP. Cloudflare DNS in front (CNAME → IP Oracle VPS), opzionale Cloudflare proxy in M3+ per DDoS mitigation. UFW + fail2ban su VM Oracle per SSH + abusi noti. |
 | Credential stuffing su OAuth | Bassa | Medio | Magic link email-only (no password), session expiry 7gg. |
 | SQL injection / data corruption | n/a | n/a | No database in v1. JSON read-only in repo. |
 | Prompt injection via tool input | Media | Medio | Validazione strict Pydantic, no codice eseguito su input utente. (Vedi 8.3) |
 | Lead exfiltration (data breach) | Bassa | Alto | Lead in CRM esterno, non in database del server. Server passa-attraverso. |
 | Man-in-the-middle | Bassa | Alto | HTTPS obbligatorio, HSTS abilitato. |
-| Compromise repo GitHub | Bassa | Alto | Secrets in Fly.io env, mai in repo. Branch protection su main. |
+| Compromise repo GitHub | Bassa | Alto | Secrets in `/opt/segmenta-mcp/.env` sulla VM Oracle (mode 600), mai in repo. Branch protection su main. Repo compromise → attacker non ottiene credentials. |
 | Supply chain attack (dipendenza malevola) | Bassa | Alto | `requirements.txt` con versioni pinned, Dependabot abilitato. |
 
 ### 8.2 Secrets management
 
-- Secrets vivono in **Fly.io environment variables** (criptate at-rest).
+- Secrets vivono in **`/opt/segmenta-mcp/.env`** sulla VM Oracle (mode 600, owner ubuntu). Mai in repo, mai in image Docker. Backup offline in 1Password/Bitwarden personale Claudio.
 - Mai in `.env` committato. `.env.example` con placeholder è OK.
 - Rotazione manuale ogni 90 giorni (incluso in checklist `09-DEPLOYMENT.md`).
 - Esempi di secrets: API key Cal.com, API key CRM, JWT signing key, Resend API key.
@@ -409,7 +412,7 @@ Cf. `00-MASTER-PLAN.md` D-MP-014 — giurisdizione primaria LFPDPPP, addendum GD
 - **Data minimization**: il server registra solo dati strettamente necessari (email per Tier 2, mai numero di telefono in Tier 1, mai dati sensibili tipo DNI).
 - **Retention**: log con PII (Tier 2/3) → 90 giorni rolling. Log senza PII (Tier 1 aggregato) → 365 giorni. Dopo: aggregazione con drop dei dettagli identificabili.
 - **Right to access / delete**: endpoint `/privacy/data-request` e `/privacy/data-deletion` (in M2, con OAuth attivo). In v1: indirizzo email `privacidad@segmentamarketing.com` per richieste manuali.
-- **Cross-border transfer**: dati da utenti EU vanno via Fly.io US per il compute. Coperto da addendum GDPR (clausole contrattuali standard / SCC).
+- **Cross-border transfer**: dati da utenti EU vanno via Oracle Cloud São Paulo (Brasile) o Phoenix (US) per il compute. Coperto da addendum GDPR (Standard Contractual Clauses con Oracle in Data Processing Agreement).
 
 Dettagli completi in `07-AUTH-OAUTH.md` e `10-GTM.md` (privacy policy testuale).
 
@@ -430,7 +433,7 @@ Stime basate sui KPI di `00-MASTER-PLAN.md`:
 
 ### 9.2 Capacità del singolo container
 
-Container Fly.io base (1 GB RAM, shared CPU) sostiene:
+VM Oracle Cloud Always Free (4 vCPU ARM Ampere, 24 GB RAM) — container `app` con limit 512MB RAM imposto in docker-compose.yml — sostiene:
 - Tier 1 tool: ~1000 req/sec teorico (tutto in memoria, no I/O).
 - Tier 2 tool con integrazione: limited dalle API esterne (Cal.com ~100 req/sec free tier; CRM webhook ~10 req/sec sicuro).
 
@@ -438,10 +441,10 @@ Bottleneck reale in v1: **rate limit Cal.com / CRM**, non il server. La capacit�
 
 ### 9.3 Scaling strategy
 
-**v1 (M1-M4)**: single container, no scaling automatico. Fly.io permette manual scaling se serve.
+**v1 (M1-M4)**: single container `app`, no scaling automatico. Manual scaling: `docker compose up -d --scale app=2` (Caddy load-balance round-robin).
 
 **v2 (post M5)**:
-- Horizontal scaling tramite Fly.io autoscaling (2-4 container min/max).
+- Horizontal scaling tramite Docker Swarm o Kubernetes (overkill per scope v1-v2; valuteremo solo se traffico reale lo richiede).
 - Sticky sessions **non necessarie** (server stateless — vedi principio 2.1).
 - Redis è già esterno, scala indipendentemente.
 
@@ -452,9 +455,9 @@ Bottleneck reale in v1: **rate limit Cal.com / CRM**, non il server. La capacit�
 ### 9.4 Cold start
 
 Il server in Python ha cold start ~3 secondi (caricamento JSON + warmup). Mitigazione:
-- Fly.io: container "always on" sul piano usato. No cold start dopo prima richiesta.
+- VM Oracle Cloud Always Free: sempre running (no auto-stop). Container `app` con `restart: unless-stopped`. No cold start dopo prima richiesta — il server è sempre vivo.
 - UptimeRobot ping ogni 5 min mantiene il container caldo.
-- In v2, se passassimo a Fly.io con auto-stop, valuteremmo container "min instances = 1".
+- In v2, se valutassimo PaaS auto-stop (es. Render), dovremmo gestire cold start con UptimeRobot ping ogni 14 min.
 
 ---
 
@@ -490,7 +493,7 @@ In v2: si valuta libreria dedicata (`circuitbreaker` o `pybreaker`).
 | Booking platform | `agendar_auditoria_gratuita` risponde con fallback: "Sistema de reservas temporalmente no disponible. ¿Quieres que te contactemos por email?" + collect email. |
 | CRM webhook | Lead salvato in Redis fallback queue, email a alerts@. Risposta utente positiva (lead non perso). |
 | Email transactional | `diagnostico_seo_express` risponde con preview inline + "El reporte completo te llegará por email en cuanto el sistema se restablezca". |
-| Cache JSON corrotta | Health check fallisce → Fly.io riavvia container → caricamento da repo. |
+| Cache JSON corrotta | Health check fallisce → Docker `restart: unless-stopped` riavvia container → caricamento da volume mount con JSON dal repo. |
 
 ### 10.5 Idempotency
 
@@ -516,8 +519,8 @@ Questo protegge da:
 | Ambiente | URL | Scopo | Dati |
 |---|---|---|---|
 | **Local** | `http://localhost:8000` | Dev quotidiano di Claudio | JSON in repo, Redis locale via Docker |
-| **Staging** | `mcp-staging.segmentamarketing.com` | Pre-deploy validation, test integrazioni | JSON in repo (branch), Redis Fly.io, sandbox booking/CRM |
-| **Production** | `mcp.segmentamarketing.com` | Live | JSON in repo (main), Redis Fly.io, prod booking/CRM |
+| **Staging** | `mcp-staging.segmentamarketing.com` (M3+) | Pre-deploy validation, test integrazioni | JSON in repo (branch develop), Redis Upstash o self-hosted, sandbox booking/CRM. Container separato sulla stessa VM Oracle. |
+| **Production** | `mcp.segmentamarketing.com` | Live | JSON in repo (main), Redis Upstash, prod booking/CRM. Container `app` su VM Oracle. |
 
 ### 11.2 Differenze tra ambienti
 
@@ -563,7 +566,7 @@ Decisioni tecniche bloccate in v1.0 di questo file. Cambiarle richiede aggiornam
 | **D-A-006** | Magic link email come unico fattore auth (no password) | Mercato target B2B, ridotto attrito, no password leak risk. |
 | **D-A-007** | Rate limit per IP (no per user in Tier 1, per user_email in Tier 2/3) | IP è solo "abuse prevention" in Tier 1. User-level più preciso dopo OAuth. |
 | **D-A-008** | Logging JSON strutturato via structlog | Standard de facto per Python observability. |
-| **D-A-009** | Metriche Prometheus, scraping da Fly.io | Standard, low overhead, sufficient per v1. |
+| **D-A-009** | Metriche Prometheus, esposte su `/metrics` (scrape esterno opzionale in M4+) | Standard, low overhead, sufficient per v1. |
 | **D-A-010** | Cinque layer architetturali (Transport / Auth / Tools / Domain / Data&Integrations) | Disciplina di accoppiamento debole. Fa parte dei principi guida. |
 | **D-A-011** | Tre ambienti (local, staging, production) con DNS distinti | Standard. Staging permette test integrazioni reali in sandbox. |
 | **D-A-012** | Idempotency su ogni scrittura Tier 2 via Redis (TTL 24h) | Protegge da retry, click multipli, debugging in dev. |
@@ -585,7 +588,7 @@ Decisioni tecniche da chiudere prima di milestone specifiche.
 
 | ID | Decisione | Bloccare entro | Owner |
 |---|---|---|---|
-| ~~**DECISION-OPEN-T-001**~~ | ~~Provider Redis~~ → **Chiusa 2026-05-11**: Upstash diretto (free tier 10k cmd/giorno). Fly.io non ha Redis add-on integrato. Fly.io Redis dedicato ($1.94/mese) come fallback se Upstash insufficiente in M4+. | ✅ Chiusa | Claudio |
+| ~~**DECISION-OPEN-T-001**~~ | ~~Provider Redis~~ → **Chiusa 2026-05-11**: Upstash free tier (10k cmd/giorno) in v1. Alternativa M3+: Redis self-hosted in container Docker sulla stessa VM Oracle (24GB RAM oversize, no quota external). | ✅ Chiusa | Claudio |
 | **DECISION-OPEN-T-002** | Strategia di JWT signing: HS256 (simmetrica) vs RS256 (asimmetrica con JWKS) | M2 | Claudio |
 | **DECISION-OPEN-T-003** | Approccio a `diagnostico_seo_express`: BeautifulSoup-only vs aggiunta di parser strutturato (es. `selectolax` per perf) | M2 | Claudio |
 | **DECISION-OPEN-T-004** | Geolocation IP: gestione lato server (MaxMind / IPAPI) vs trust client headers | M3 | Claudio |
@@ -620,7 +623,7 @@ Stati possibili del server e transizioni:
             │              │ Critical error (JSON corrupt, etc.)
             │              ▼
             │       ┌──────────────┐
-            │       │  UNHEALTHY   │ ──── Fly.io restart ────┐
+            │       │  UNHEALTHY   │ ──── Docker restart policy ────┐
             │       └──────────────┘                          │
             │                                                 │
             └─────────────────────────────────────────────────┘
@@ -698,7 +701,8 @@ Questo esempio mostra: 5 layer del server toccati, 3 integrazioni esterne, OAuth
 |---|---|---|---|
 | 1.0 | 2026-05-10 | Claude (proposta) + Claudio (revisione) | Prima stesura completa. |
 | 1.1 | 2026-05-11 | Claude (harmony pass M0.3) + Claudio (review) | Sez. 4.2 tabella Layer ora include colonna esplicita "Moduli" che mappa ogni layer al directory layout di `02-CONVENTIONS.md` sez. 3.1. Aggiunto vincolo esplicito "1 tool = 1 file". Le 21 decisioni canoniche D-A-001 → D-A-021 restano locked. |
-| 1.2 | 2026-05-11 | Claude + Claudio (chiusura M0.2.1) | **Hosting migrato Railway → Fly.io free tier** (allineato con MASTER v1.3 D-MP-002). Stack tabella sez. 3.1 aggiornata. Hosting Redis: Upstash diretto (Fly.io non ha Redis add-on integrato, a differenza di Railway). DECISION-OPEN-T-001 chiusa. Vari riferimenti a "Railway" sostituiti con "Fly.io" in sez. 7 (logging), 8 (security), 9 (capacity), 11 (environments). |
+| 1.2 | 2026-05-11 | Claude + Claudio (chiusura M0.2.1) | **Hosting migrato Railway → Fly.io free tier** (allineato con MASTER v1.3 D-MP-002). Stack tabella sez. 3.1 aggiornata. Hosting Redis: Upstash diretto (Fly.io non ha Redis add-on integrato, a differenza di Railway). DECISION-OPEN-T-001 chiusa. |
+| 1.3 | 2026-05-11 | Claude + Claudio (ricalibrazione hosting per stabilità free tier) | **Hosting ri-migrato Oracle Cloud → Oracle Cloud Always Free** (allineato con MASTER v1.4 D-MP-002). Sez. 3.1 stack tabella riscritta: Docker Compose + Caddy + Watchtower + Tailscale + ghcr.io. Capacity sez. 9 ricalcolata su 24GB RAM. Logging sez. 7 → Docker logs driver + Caddy access log JSON. Sez. 8 (security): SSH via Tailscale, no porta 22 pubblica. Sez. 11 environments: VM single-host, staging/prod via container separati o 2ª VM ARM (quota Always Free). |
 
 ---
 

@@ -86,45 +86,73 @@ Settings → Apps → Advanced Settings → Enable Developer Mode → Crea app �
 
 ## Deploy in produzione
 
-### Opzione 1: Fly.io free tier (target $0/mese — default v1)
+### Opzione 1: Oracle Cloud Always Free (target $0/mese **perpetuo** — default v1)
+
+Stack: 1 VM ARM Ampere A1 (4 vCPU, 24GB RAM) + Docker Compose + Caddy reverse proxy + Watchtower auto-update + Tailscale per SSH.
 
 ```bash
-# Setup iniziale (una volta)
-fly auth login
-fly apps create segmenta-mcp-prod --org segmenta-ai
-fly volumes create segmenta_data --size 1 --region mex --app segmenta-mcp-prod
+# 1. Provision VM Oracle (Console Oracle web, ~30 min)
+#    Image: Ubuntu 22.04 Minimal aarch64
+#    Shape: VM.Standard.A1.Flex (4 OCPU + 24GB RAM)
+#    Region: sa-saopaulo-1 (~80ms da MX) o us-phoenix-1
+#    Storage: 50GB boot + 100GB block (Always Free quota)
 
-# Setup secrets (Resend, Upstash, JWT keys, etc — vedi 09-DEPLOYMENT.md sez. 9.5)
-fly secrets set RESEND_API_KEY=re_xxx --app segmenta-mcp-prod
-# ... (lista completa nel 09-DEPLOYMENT)
+# 2. SSH iniziale + bootstrap Linux (~1h)
+ssh ubuntu@<public-ip>
+sudo apt update && sudo apt upgrade -y
+sudo apt install -y curl git ufw fail2ban unattended-upgrades
+sudo dpkg-reconfigure --priority=low unattended-upgrades
 
-# Deploy
-fly deploy --config fly.toml --remote-only
+# 3. Setup Tailscale (SSH sicuro, chiudi porta 22 pubblica)
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --ssh
+sudo ufw allow 80/tcp && sudo ufw allow 443/tcp && sudo ufw --force enable
 
-# Custom domain
-fly certs add mcp.segmentamarketing.com --app segmenta-mcp-prod
+# 4. Install Docker
+curl -fsSL https://get.docker.com | sudo sh
+sudo usermod -aG docker ubuntu
+newgrp docker
+
+# 5. Clone repo + secrets
+sudo mkdir -p /opt/segmenta-mcp && sudo chown ubuntu:ubuntu /opt/segmenta-mcp
+cd /opt/segmenta-mcp
+git clone https://github.com/segmenta-ai/segmenta-mcp.git .
+cp .env.example .env
+chmod 600 .env
+vim .env  # popola con secrets reali
+
+# 6. DNS A record verso IP pubblico Oracle (richiede accesso DNS Merari, BL-004)
+
+# 7. Avvia stack
+docker compose up -d
+
+# 8. Verifica HTTPS auto via Let's Encrypt
+curl -I https://mcp.segmentamarketing.com/health
+# Atteso: HTTP/2 200, valid TLS cert
 ```
 
-**Costo target**: **$0 USD/mese** M0-M3 (free tier Fly.io 3 VMs + Upstash Redis free + Resend free 100/giorno). Hard cap $30 USD/mese sempre — vedi `09-DEPLOYMENT.md` sez. 12.3.
+**Costo**: **$0 USD/mese perpetuo** (Oracle Always Free dichiarata permanente). Setup iniziale ~3-4h, poi manutenzione ~15 min/mese (auto-updates Linux, Watchtower auto-update container).
 
-### Opzione 2: Railway (fallback se Fly.io free tier deprecato)
+📖 Playbook completo step-by-step: `Docs/blueprint/09-DEPLOYMENT.md` sez. 4.4.
+
+### Opzione 2: Railway (fallback paid se Oracle non disponibile)
 
 ```bash
 # Railway → New Project → Deploy from GitHub repo
 # Railway rileva il Dockerfile e fa tutto. Aggiungi dominio custom.
 ```
 
-Costo tipico: **$5-$15 USD/mese**. Da usare solo se Fly.io non disponibile.
+Costo tipico: **$5-$15 USD/mese**. Da usare solo se Oracle Always Free deprecato in futuro.
 
-### Opzione 3: VPS dedicato (non Hostinger shared)
+### Opzione 3: VPS dedicato (Hetzner / DigitalOcean)
 
 ```bash
-docker build -t segmenta-mcp .
-docker run -d -p 8000:8000 --name segmenta-mcp segmenta-mcp
-# Reverse proxy con Nginx + Let's Encrypt davanti
+# Stesso setup Opzione 1 (Docker Compose + Caddy), su qualsiasi VPS Linux
+# Hetzner Cloud: ~€4/mese (CX22, 2 vCPU + 4GB RAM)
+docker compose up -d
 ```
 
-Solo se Segmenta ha già un VPS dedicato disponibile. Hostinger shared **non funziona** (no endpoint persistente).
+Hostinger shared **non funziona** (no endpoint persistente).
 
 ### DNS
 

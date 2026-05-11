@@ -3,9 +3,9 @@
 | Campo | Valore |
 |---|---|
 | **Progetto** | Segmenta MCP Server |
-| **Versione documento** | 1.3 |
+| **Versione documento** | 1.4 |
 | **Data** | 2026-05-11 |
-| **Status** | Approvato (post harmony pass M0.3 + chiusura M0.2 parziale) |
+| **Status** | Approvato (post harmony pass M0.3 + chiusura M0.2 parziale + ricalibrazione hosting) |
 | **File n.** | 00 di 14 documenti blueprint (12 numerati `00-11` + `MILESTONES.md` + `SESSION-STATE.md`; `README.md` è entry point pubblico separato) |
 | **Lingua** | Italiano (prosa) + spagnolo (identificatori e termini di marketing) |
 | **Repository** | `github.com/segmenta-ai/segmenta-mcp` (pubblico — D-MP-008; org dedicata confermata 2026-05-11 chiudendo DECISION-OPEN-005) |
@@ -108,7 +108,7 @@ I dettagli architetturali completi — diagramma data flow, schema OAuth, stack 
 ### 4.1 Componenti prodotto
 
 - Server MCP scritto in Python con `fastmcp` (versione ≥ 3.2)
-- Deploy in container su Fly.io free tier (vedi D-MP-002, region MEX + MIA)
+- Deploy in container Docker su Oracle Cloud Always Free VPS (vedi D-MP-002, region São Paulo/Phoenix, Caddy reverse proxy + TLS auto)
 - Dominio dedicato `mcp.segmentamarketing.com` con HTTPS via Let's Encrypt
 - 14 tool totali (4 Tier 1 + 5 Tier 2 + 5 Tier 3)
 - 4 file dati JSON gestiti dal team Segmenta (`services.json`, `case_studies.json`, `benchmarks.json`, `glosario.json`)
@@ -147,7 +147,7 @@ Lo scope è disciplinato. Le seguenti voci sono **fuori dal blueprint v1**, anch
 - ❌ **CMS proprio per i dati JSON**: in v1 i file JSON si modificano via PR su GitHub. (Eventuale dashboard editoriale rimandata.)
 - ❌ **Reportistica per i clienti finali di Segmenta**: il MCP non genera report per i clienti dell'agenzia, solo per visitatori prospect.
 - ❌ **Integrazione con il sito WordPress/Elementor di Segmenta**: il MCP è completamente separato. Comunicano solo via API pubbliche, non via plugin.
-- ❌ **Self-hosted gateway**: usiamo Fly.io PaaS. Non gestiamo Kubernetes nostro né reverse proxy custom.
+- ❌ **Kubernetes / orchestrazione complessa**: usiamo singola VPS Oracle Cloud + Docker Compose + Caddy reverse proxy. Niente K8s, niente Helm, niente service mesh.
 - ❌ **Versioning multipli concorrenti del server**: rilascio una versione alla volta. Niente blue/green deploy avanzato in v1.
 - ❌ **Caching dei risultati LLM**: ogni chiamata tool è stateless. Niente sistema di caching lato server.
 - ❌ **Dati dettagliati per Europa diversa da Spagna in v1**: i benchmark europei coprono solo ES (occasionale) — non IT, FR, DE, PT.
@@ -175,7 +175,7 @@ Lo scope è disciplinato. Le seguenti voci sono **fuori dal blueprint v1**, anch
 - Tutte le scelte di stack, design pattern, struttura dati
 - Refactoring del codice esistente
 - Aggiunta/rimozione di tool Tier 3 (le decisioni sui Tier 1 e 2 vanno discusse)
-- Scelta provider hosting (D-MP-002 = Fly.io v1.3; alternative valutabili in v2 se serve scalare)
+- Scelta provider hosting (D-MP-002 = Oracle Cloud Always Free v1.4; alternative valutabili in v2 se serve scalare oltre Always Free quota)
 
 ---
 
@@ -300,7 +300,7 @@ Inoltre:
 | **Tempo scarce di Claudio**: progetto compete con Keeper, Chirsan, Numely | Alta | Alto | Pace 2-3h/sett dichiarata. Stop rules attivate (vedi sez. 11). Pause accettate, non drammatizzate. |
 | **Lead capture senza follow-up**: lead arrivano ma il team non li lavora | Media | Alto | Setup CRM è blocker di M2. Integrazione webhook con Slack del team Segmenta. |
 | **Cambio di policy** Anthropic / OpenAI sulle MCP Apps | Bassa | Alto | Server agnostico al singolo client. Se ChatGPT cambia regole, Claude resta. E viceversa. |
-| **Rate limit / costi infra esplosi** in caso di abuso | Bassa | Medio | Rate limit per IP nel server. Monitoring costi Fly.io dashboard + alert. Hard cap $30/mese (target $0). Outbound Fly.io free 160GB/mese — alert al 70%. |
+| **Rate limit / costi infra esplosi** in caso di abuso | Bassa | Medio | Rate limit per IP nel server. Oracle Cloud Always Free non genera costi extra: outbound 10TB/mese hard limit, dopo si **blocca** il traffic (no overage charge). Hard cap budget $30/mese mai raggiunto in v1 (Resend free + Upstash free + VPS gratis). |
 | **Integrazione booking / CRM fragile** | Media | Medio | Test in staging prima di produzione. Webhook con retry exponential backoff. Fallback email diretta. |
 | **Privacy / LFPDPPP**: dati lead trattati senza base legale chiara | Bassa | Alto | Privacy policy MCP dedicata con LFPDPPP primario + addendum GDPR/CCPA. Solo dati strettamente necessari. Consenso esplicito per email storage. Se utenti EU arrivano, fallback compliance GDPR già scritto. |
 | **Concorrenti ci copiano** rapidamente una volta lanciati | Media | Basso | Vantaggio first-mover, qualità dei dati interni Segmenta non replicabile. La concorrenza è benvenuta — alza la consapevolezza del canale. |
@@ -313,9 +313,9 @@ Inoltre:
 ### 10.1 Vincoli
 
 - **Tempo Claudio**: 2-3h/settimana effettive sul progetto, condivise con Keeper v2, Chirsan, Numely, MePA.
-- **Budget infra**: **target $0/mese** (free tier Fly.io + Resend free + Upstash Redis free). Hard cap di sicurezza $30 USD/mese, mai superato senza approval Merari. M0.2.1 chiusa 2026-05-11.
+- **Budget infra**: **target $0/mese perpetuo** (Oracle Cloud Always Free + Resend free 100/giorno + Upstash Redis free 10k cmd/giorno; Redis self-hosted sulla stessa VM è opzione M3+ se Upstash insufficiente). Hard cap di sicurezza $30 USD/mese, mai superato senza approval Merari. M0.2.1 chiusa 2026-05-11.
 - **Stack obbligati**: Python (skill esistente Claudio), HTTPS (requisito Anthropic/OpenAI), MCP protocol (dato di partenza).
-- **Hosting**: **Fly.io free tier** (D-MP-002 v1.3). Hostinger shared *non è adatto* (no endpoint persistente). Self-host VPS escluso (manutenzione TLS/OS).
+- **Hosting**: **Oracle Cloud Always Free Tier** (D-MP-002 v1.4). VPS Linux Ubuntu 22.04 LTS con Docker + Caddy reverse proxy. Hostinger shared *non è adatto* (no endpoint persistente). Setup iniziale ~3-4h, poi manutenzione minima grazie a Caddy auto-TLS + Watchtower auto-update + `unattended-upgrades`.
 - **Dominio**: `segmentamarketing.com` è esistente e gestito esternamente — accesso DNS via Merari.
 - **Sede legale primaria**: **Messico** (M0.2.2 chiusa 2026-05-11). Privacy policy giurisdizione primaria LFPDPPP, addendum GDPR/CCPA.
 
@@ -327,7 +327,8 @@ Inoltre:
 - L'integrazione booking (vedi DECISION-OPEN-002) è disponibile per tutta la durata del progetto.
 - Claudio ha un Mac/PC funzionante con Docker installato per i deploy.
 - Sede legale Messico confermata (Merari = responsable del tratamiento per LFPDPPP).
-- **Fly.io mantiene free tier nei prossimi 12-18 mesi**. Se deprecato, fallback a Railway $5/mese o VPS dedicato.
+- **Oracle Cloud mantiene Always Free Tier perpetuo** (politica dichiarata ufficialmente). Se deprecato in futuro: migrazione a Hetzner VPS €4/mese o Railway $5/mese — il Dockerfile è portabile.
+- Claudio accetta ruolo sysadmin part-time (~15 min/mese) per la VPS. Ubuntu LTS + auto-updates riducono il rischio.
 
 ### 10.3 Dipendenze esterne
 
@@ -335,8 +336,9 @@ Inoltre:
 - Account OpenAI Plus o Pro per Claudio (per Developer Mode in ChatGPT)
 - Account piattaforma booking (DECISION-OPEN-002 — chiusa in M2 con Merari)
 - Account Resend (email transactional — DECISION-OPEN-004 chiusa 2026-05-11: Resend free tier 100/giorno è sufficiente M1-M3)
-- **Account Fly.io** (free tier, D-MP-002)
-- **Account Upstash** (Redis free tier 10k cmd/giorno)
+- **Account Oracle Cloud** (Always Free Tier, richiede verifica carta di credito ma non viene mai addebitata su tier free; D-MP-002 v1.4)
+- **Account Upstash** (Redis free tier 10k cmd/giorno) — alternativa M3+: Redis self-hosted sulla stessa VM Oracle
+- **Account Tailscale** (free per uso personale, max 100 dispositivi) — SSH sicuro alla VPS senza esporre porta 22 pubblica
 - Account GitHub org `segmenta-ai` (M0.2.5 chiusa 2026-05-11 — DECISION-OPEN-005 chiusa)
 - Privacy policy LFPDPPP — possibile review legale messicana (~500-1500 USD una tantum, vedi `08-INTEGRATIONS.md` e `10-GTM.md`)
 
@@ -366,7 +368,7 @@ Decisioni bloccate in v1.1 di questo MASTER-PLAN. Cambiarle richiede aggiornamen
 | ID | Decisione | Motivazione sintetica |
 |---|---|---|
 | **D-MP-001** | Lingua: italiano (prosa blueprint) + spagnolo (identificatori, tool descriptions, termini di marketing) | Coerenza col mercato target Segmenta (LATAM/MX/US/EU) e con il codice già scaffoldato. |
-| **D-MP-002** | Stack: FastMCP Python + **Fly.io free tier** (no Railway, no Cloudflare Workers) | Skill Claudio, semplicità deploy con Dockerfile, **Fly.io free tier mantiene costo $0/mese** target (vs Railway minimo $5/mese). Region MEX (Mexico City) + MIA (Miami) ottimali per LATAM/MX/US. SSE/long-lived connections supportati nativamente (richiesti da MCP protocol). Ricalibrato in v1.3 (2026-05-11) chiudendo M0.2.1: Claudio richiede budget infra zero. |
+| **D-MP-002** | Stack: FastMCP Python + **Oracle Cloud Always Free** (1 VM ARM Ampere, 4 vCPU, 24GB RAM) + Caddy (TLS auto) + Docker Compose | Costo $0/mese **perpetuo** (Always Free Tier dichiarato da Oracle). Setup iniziale ~3-4h (Linux + Docker + Caddy + Tailscale), poi steady-state ~15 min/mese manutenzione. Zero vendor lock-in (è VPS Linux puro). Ricalibrato in v1.4 (2026-05-11) dopo che Fly.io ha eliminato free tier perpetuo nel 2024. **Region Mexico Central (Querétaro, `mx-queretaro-1`)** = ~5-30ms da MX (mercato primario), ~30-80ms da US-hispanic (Miami/TX), ottimizza 17/30 query baseline priority alta. Risorse oversize permettono futuri tool senza scaling. |
 | **D-MP-003** | Subdomain dedicato: `mcp.segmentamarketing.com` | Trust signal, separazione concerns col sito principale, HTTPS isolato. |
 | **D-MP-004** | Tier system 3 livelli (público / lead capture / advanzado) | Disciplina commerciale: valore prima della conversione, conversione prima della retention. |
 | **D-MP-005** | Pace: 2-3h/sett, timeline M0→M4 ~6-7 mesi calendar (vedi sez. 7) | Realistico dato il contesto Claudio multi-progetto + assunzione Claude Code scrive codice. Stima v1.0 (12-13 settimane) ricalibrata in v1.2. |
@@ -455,7 +457,7 @@ Riferimento rapido di "dove sta cosa". Tutti i percorsi sono relativi a `Docs/bl
 | `06-TOOLS-TIER3.md` | 5 tool advanzados — spec, retention, intelligence | M0 |
 | `07-AUTH-OAUTH.md` | OAuth 2.0 dinamico, magic link email, sessioni, refresh | M0 |
 | `08-INTEGRATIONS.md` | Booking, CRM, email transactional, WhatsApp Business — contratti API | M0 |
-| `09-DEPLOYMENT.md` | Fly.io free tier, DNS, HTTPS, secrets, CI/CD, rollback, observability | M0 |
+| `09-DEPLOYMENT.md` | Oracle Cloud Always Free VPS, Docker Compose, Caddy, Tailscale, CI/CD via GitHub Actions + SSH, rollback, observability | M0 |
 | `10-GTM.md` | Submission Connector Directory, banner sito, landing `/mcp`, blog ES | M0 |
 | `11-ANALYTICS.md` | Dashboard interna, metriche tool, Share of Model tracking distribuito per país | M0 |
 | `MILESTONES.md` | M0-M5 con acceptance criteria testabili dettagliate, durate, dipendenze (target 600-1000 righe) | M0, aggiornato a fine ogni M |
@@ -471,6 +473,7 @@ Riferimento rapido di "dove sta cosa". Tutti i percorsi sono relativi a `Docs/bl
 | 1.1 | 2026-05-10 | Claude (revisione) + Claudio (input) | **Cambio focus geografico**: mercati primari MX/US/LATAM, Europa secondaria. **Privacy LFPDPPP primaria** (ex Spagna RGPD). **Blog ES-only LATAM-first**. **30 query baseline ridistribuite per país**. **Pubblicazioni target 8.4 LATAM/MX/US**. **D-MP-016/017/018 aggiunte** (mercati, blog, valuta USD). **Decisioni aperte 011-012 aggiunte**. **SR-009/010 aggiunte** (privacy + soglia MX). **Sezione 2.4 nuova** (specificità mercato hispanofono e varianti regionali). |
 | 1.2 | 2026-05-11 | Claude (harmony pass M0.3) + Claudio (review) | **Timeline ricalibrata** (HC-001 risolta): sez. 7 ora dichiara ~6-7 mesi M0→M4 con assunzione Claude Code scrive codice (vs ~12-13 settimane v1.0/v1.1 ottimista). D-MP-005 aggiornato di conseguenza. **Conteggio file** (HC-009): header chiarisce 14 documenti blueprint + README separato. **Status** passato da "Draft (in revisione)" a "Approvato". |
 | 1.3 | 2026-05-11 | Claude + Claudio (chiusura M0.2) | **D-MP-002 ricalibrata**: stack hosting passa da **Railway a Fly.io free tier** (target $0/mese, region MEX + MIA). Vincoli sez. 10.1 budget aggiornato (target $0, hard cap $30). DECISION-OPEN-004 chiusa (Resend), -005 chiusa (org `segmenta-ai`), -011 chiusa (Messico). Repository ufficiale ora `github.com/segmenta-ai/segmenta-mcp`. M0.2.1, M0.2.2, M0.2.5 chiuse. |
+| 1.4 | 2026-05-11 | Claude + Claudio (cambio hosting per stabilità free tier) | **D-MP-002 ri-ricalibrata**: stack hosting passa da **Fly.io a Oracle Cloud Always Free Tier** (1 VM ARM Ampere, 4 vCPU, 24GB RAM, $0/mese **perpetuo**). Motivazione: Fly.io ha eliminato free tier perpetuo nel 2024 (richiede $5 credit minimo + carta), incompatibile con vincolo Claudio "$0/mese hard". Oracle Always Free è dichiarato perpetuo nelle policy ufficiali. Trade-off accettato: setup iniziale 3-4h vs PaaS, manutenzione mensile ~15 min (Caddy auto-TLS + Watchtower auto-update + unattended-upgrades). Zero vendor lock-in (VPS Linux puro, Dockerfile portabile). Region São Paulo o Phoenix (~80-100ms da MX, accettabile). |
 
 ---
 

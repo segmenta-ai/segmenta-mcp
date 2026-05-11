@@ -7,7 +7,7 @@
 | **Data** | 2026-05-11 |
 | **Status** | Approvato (post harmony pass M0.3) |
 | **File n.** | 11 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.2 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4 |
 | **File correlati** | `01-ARCHITECTURE.md`, `10-GTM.md`, `MILESTONES.md` |
 
 ---
@@ -325,7 +325,7 @@ In tal caso: stop espansione Tier 3, sprint GTM dedicato (digital PR LATAM/MX/US
 ### 6.1 Strategia in v1
 
 Niente dashboard SaaS pagato. Stack minimo:
-- Logs strutturati → file Fly.io
+- Logs strutturati → Docker logs driver `json-file` (rotation 10MB × 3 file) → opzionale forward a Oracle Object Storage Always Free 10GB
 - Script Python `scripts/generate_dashboard.py` che produce HTML statico
 - Hosted su `https://segmentamarketing.com/admin/mcp-dashboard.html` (basic auth `htpasswd`)
 - Refresh manuale o cron daily
@@ -605,7 +605,7 @@ Drill-down a singolo utente è possibile (CLI script), ma richiede legittimo bis
 ### 8.4 Esportazione e BI tools
 
 In v1: nessun export verso BI tool (Looker, Tableau, etc.). I dati restano in:
-- Fly.io logs
+- Docker container logs (via `docker compose logs`)
 - Redis live state
 - HubSpot CRM (gestito da Segmenta team)
 
@@ -645,7 +645,7 @@ Email automatica primo giorno di ogni mese, generata da `scripts/monthly_report.
 
 - Sintesi visibility (citation rate trend, installs)
 - Lead generati e funnel
-- Cost stack (Fly.io + Resend + DataForSEO se applicabile)
+- Cost stack (Oracle Cloud Always Free $0 + Resend free + DataForSEO se applicabile)
 - Top 3 successi del mese
 - Top 3 issue / blocker del mese
 - Decisione richiesta a Merari (se applicabile)
@@ -676,7 +676,7 @@ Idea per content marketing: ogni 6 mesi pubblicare report aggregato pubblico tip
 
 | Strumento | Funzione | Cost |
 |---|---|---|
-| **Fly.io logs built-in** | Raw log storage 30gg | Incluso |
+| **Docker logs (json-file driver)** | Raw log storage rolling 30MB × 3 file | Incluso (su VM Oracle disk) |
 | **Python scripts custom** | Aggregation + dashboard generation | Zero (dev time) |
 | **HTML statico** | Dashboard display | Zero |
 | **GA4** | Landing page analytics | Free tier |
@@ -714,7 +714,7 @@ Decisione tool by tool quando KPI giustificano. Mai upgrade speculativo.
 | **D-AN-009** | Attribution AI via `Origin` header primary, User-Agent fallback, client_name secondary | Trade-off accuratezza vs disponibilità dati. |
 | **D-AN-010** | Custom property `mcp_client_origin` in HubSpot per attribution lead | Permette funnel separato Claude vs ChatGPT. |
 | **D-AN-011** | Email sempre hash SHA-256 in log analitici | Privacy by design, coerente D-AU-012. |
-| **D-AN-012** | Niente BI tool esterno in v1 | Cost-conscious, dati restano in Fly.io + CRM. |
+| **D-AN-012** | Niente BI tool esterno in v1 | Cost-conscious, dati restano nei Docker logs su VM Oracle + CRM HubSpot. |
 | **D-AN-013** | Report mensile auto-generato a Merari il giorno 1 | Disciplina comunicazione, evita "non comunico più". |
 | **D-AN-014** | Report trimestrale presenza diretta (30min Q1, 1h Q2+) | Allinea Merari su decisioni strategiche. |
 | **D-AN-015** | Compliance audit log per ogni accesso a dati pseudonimizzati | LFPDPPP/GDPR. |

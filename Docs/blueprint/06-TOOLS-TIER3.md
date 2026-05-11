@@ -7,7 +7,7 @@
 | **Data** | 2026-05-11 |
 | **Status** | Approvato (post harmony pass M0.3) |
 | **File n.** | 06 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.2, `01-ARCHITECTURE.md` v1.0, `04-TOOLS-TIER1.md` v1.0, `05-TOOLS-TIER2.md` v1.1, `03-DATA-MODEL.md` v1.1 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4, `01-ARCHITECTURE.md` v1.3, `04-TOOLS-TIER1.md` v1.0, `05-TOOLS-TIER2.md` v1.0, `03-DATA-MODEL.md` v1.1 |
 | **File correlati** | `07-AUTH-OAUTH.md`, `08-INTEGRATIONS.md`, `11-ANALYTICS.md` |
 
 ---

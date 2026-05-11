@@ -7,7 +7,7 @@
 | **Data** | 2026-05-10 |
 | **Status** | Draft (in revisione) |
 | **File n.** | 05 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.3, `01-ARCHITECTURE.md` v1.2, `03-DATA-MODEL.md` v1.1, `04-TOOLS-TIER1.md` v1.0 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4, `01-ARCHITECTURE.md` v1.3, `03-DATA-MODEL.md` v1.1, `04-TOOLS-TIER1.md` v1.0 |
 | **File correlati** | `06-TOOLS-TIER3.md`, `07-AUTH-OAUTH.md`, `08-INTEGRATIONS.md`, `11-ANALYTICS.md` |
 
 ---

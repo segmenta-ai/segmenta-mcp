@@ -5,12 +5,12 @@
 | Campo | Valore |
 |---|---|
 | **Progetto** | Segmenta MCP Server |
-| **Versione blueprint** | v1.2 (M0.3 harmony pass + M0.2 chiusura parziale; MASTER v1.3) |
+| **Versione blueprint** | v1.3 (M0.3 harmony pass + M0.2 chiusura + ricalibrazione hosting Oracle Cloud; MASTER v1.4) |
 | **Versione server** | non ancora rilasciato |
-| **Status macro** | 🟢 M0 QUASI COMPLETATO — restano solo BL-004 (DNS) e BL-006/007 (booking + CRM) |
+| **Status macro** | 🟢 M0 QUASI COMPLETATO — restano solo BL-004 (DNS) e BL-006/007 (booking + CRM in M2) |
 | **Ultima modifica** | 2026-05-11 |
-| **Prossima azione** | Setup account Fly.io + Upstash + GitHub org `segmenta-ai`; coordinare con Merari per BL-004 (DNS) e DECISION-OPEN-002/003 in M2 |
-| **Documenti governanti** | `00-MASTER-PLAN.md` v1.3 + tutti i 12 file numerati + `MILESTONES.md` |
+| **Prossima azione** | Setup account **Oracle Cloud Always Free** + Upstash + GitHub org `segmenta-ai` + Tailscale; coordinare con Merari per BL-004 (DNS A record verso IP VPS) e DECISION-OPEN-002/003 in M2 |
+| **Documenti governanti** | `00-MASTER-PLAN.md` v1.4 + tutti i 12 file numerati + `MILESTONES.md` |
 
 ---
 
@@ -65,7 +65,7 @@ Non ogni 5 minuti. Aggiorna in 3 momenti:
 
 | Milestone | Status | Completion % | Note |
 |---|---|---|---|
-| **M0 — Foundation** | 🟢 QUASI COMPLETO | 99% | 14/14 task M0.1 completi; M0.3 (harmony pass) completato; M0.2.1 ($0 budget + Fly.io), M0.2.2 (Messico), M0.2.5 (org GitHub `segmenta-ai`) chiuse 2026-05-11; restano BL-004 (DNS access via Merari) |
+| **M0 — Foundation** | 🟢 QUASI COMPLETO | 99% | 14/14 task M0.1 completi; M0.3 (harmony pass) completato; M0.2.1 ($0 budget + Oracle Cloud Always Free), M0.2.2 (Messico), M0.2.5 (org GitHub `segmenta-ai`) chiuse 2026-05-11; restano BL-004 (DNS access via Merari) |
 | **M1 — MVP Tier 1** | 🔒 NOT STARTED | 0% | Aspetta M0 chiusura |
 | **M2 — Lead capture** | 🔒 NOT STARTED | 0% | — |
 | **M3 — GTM** | 🔒 NOT STARTED | 0% | — |
@@ -76,8 +76,8 @@ Non ogni 5 minuti. Aggiorna in 3 momenti:
 
 | File | Versione | Status | Note |
 |---|---|---|---|
-| `00-MASTER-PLAN.md` | v1.2 | ✅ | Focus geografico LATAM/MX/US/ES, privacy LFPDPPP, timeline ricalibrata 6-7 mesi (HC-001 risolta) |
-| `01-ARCHITECTURE.md` | v1.2 | ✅ | 5 layer, stack FastMCP+Python+**Fly.io** (post M0.2.1) |
+| `00-MASTER-PLAN.md` | v1.4 | ✅ | Focus LATAM/MX/US/ES, privacy LFPDPPP, timeline ~6-7 mesi (HC-001), hosting Oracle Cloud Always Free (D-MP-002 v1.4) |
+| `01-ARCHITECTURE.md` | v1.3 | ✅ | 5 layer, stack FastMCP+Python+**Oracle Cloud Always Free** + Caddy + Docker Compose |
 | `02-CONVENTIONS.md` | v1.1 | ✅ | Bilingue IT/ES, ruff+mypy strict, Conventional Commits, slug pattern esplicito |
 | `03-DATA-MODEL.md` | v1.1 | ✅ | 5 file JSON (incluso competitors_dataset), Pydantic v2, MercadoSubregional tipizzato |
 | `04-TOOLS-TIER1.md` | v1.0 | ✅ | 4 tool public con descriptions ES LATAM-neutral |
@@ -85,10 +85,10 @@ Non ogni 5 minuti. Aggiorna in 3 momenti:
 | `06-TOOLS-TIER3.md` | v1.1 | ✅ | 5 tool avanzados, mix gating, pais_o_subregion tipizzato |
 | `07-AUTH-OAUTH.md` | v1.0 | ✅ | OAuth 2.0 dynamic, magic link, RS256 |
 | `08-INTEGRATIONS.md` | v1.2 | ✅ | Cal.com, HubSpot, **Resend confermato**, Slack, DataForSEO. Adapter pattern. |
-| `09-DEPLOYMENT.md` | v1.2 | ✅ | **Fly.io free tier**, GitHub Actions CI/CD, fly.toml + Dockerfile + runbook |
+| `09-DEPLOYMENT.md` | v1.3 | ✅ | **Oracle Cloud Always Free VPS**, Docker Compose + Caddy + Watchtower + Tailscale, ghcr.io image registry, smoke test cron |
 | `10-GTM.md` | v1.1 | ✅ | 7 canali, 30+ pubblicazioni target, description Anthropic Directory ottimizzata |
 | `11-ANALYTICS.md` | v1.1 | ✅ | Dashboard interna, 30 query baseline, attribution AI, 5 dimensioni KPI |
-| `MILESTONES.md` | v1.2 | ✅ | M0-M5 dettagliato, ~215 task granulari, M1.5 setup Fly.io |
+| `MILESTONES.md` | v1.3 | ✅ | M0-M5 dettagliato, ~215 task granulari, M1.5 setup Oracle Cloud VPS (~3-4h bootstrap) |
 | `SESSION-STATE.md` | v1.1 | ✅ | Questo file — aggiornato 2026-05-11 post harmony pass |
 | `README.md` | — | ✅ | Entry point pubblico, aggiornato 2026-05-11 (pivot LATAM, valuta USD) |
 
@@ -112,7 +112,7 @@ I dati reali verranno popolati in **M1.4** con coinvolgimento Merari/Romina/Ales
 
 5 decisioni da chiudere prima di poter iniziare M1 — status post 2026-05-11:
 
-- [x] **M0.2.1** ✅ Budget infra: target **$0/mese** (Fly.io + Upstash + Resend free tier); hard cap $30/mese. D-MP-002 ricalibrata (Railway → Fly.io).
+- [x] **M0.2.1** ✅ Budget infra: target **$0/mese perpetuo** (Oracle Cloud Always Free + Upstash + Resend free tier); hard cap $30/mese. D-MP-002 ricalibrata 2 volte: Railway → Fly.io (v1.3) → Oracle Cloud Always Free (v1.4) dopo che Fly.io ha eliminato free tier perpetuo nel 2024.
 - [x] **M0.2.2** ✅ Sede legale: **Messico** confermato. LFPDPPP primaria, Merari = responsable del tratamiento.
 - [x] **M0.2.3** ✅ Repo GitHub pubblico (D-MP-008 confermato).
 - [ ] **M0.2.4** Accesso DNS `segmentamarketing.com` — pending Merari (creazione CNAME `mcp.segmentamarketing.com` → `segmenta-mcp-prod.fly.dev` quando deploy ready in M1.1).
@@ -177,10 +177,10 @@ Discrepanza con MASTER-PLAN sez. 7 (12-13 settimane) **rimane significativa**. P
 
 | ID | Blocker | Owner | Status | Età |
 |---|---|---|---|---|
-| BL-001 | ~~Decisione Merari su budget M0-M4~~ | Merari | 🟢 Chiuso 2026-05-11: $0 target, Fly.io free tier (M0.2.1) | 1gg |
+| BL-001 | ~~Decisione Merari su budget M0-M4~~ | Merari | 🟢 Chiuso 2026-05-11: $0 target perpetuo, Oracle Cloud Always Free (M0.2.1) | 1gg |
 | BL-002 | ~~Decisione Merari su sede legale Messico LFPDPPP~~ | Merari | 🟢 Chiuso 2026-05-11: Messico confermato (M0.2.2) | 1gg |
 | BL-003 | ~~Decisione Merari su repo GitHub pubblico~~ | Merari | 🟢 Chiuso 2026-05-11: pubblico confermato (D-MP-008) | 1gg |
-| BL-004 | Accesso DNS `segmentamarketing.com` | Merari | 🟡 Da chiudere a M1.1 quando deploy Fly.io ready (CNAME setup richiede subdomain target) | 1gg |
+| BL-004 | Accesso DNS `segmentamarketing.com` | Merari | 🟡 Da chiudere a M1.1 quando VM Oracle provisionata (A record `mcp.segmentamarketing.com` → IP pubblico VPS) | 1gg |
 | BL-005 | ~~Decisione GitHub account host~~ | Merari + Claudio | 🟢 Chiuso 2026-05-11: org `segmenta-ai` (M0.2.5) | 1gg |
 
 ### 5.2 Blocker P1 (impediscono M2)
@@ -260,7 +260,7 @@ Vedi `11-ANALYTICS.md` sez. 11.
 
 | File | ID prefix | Conteggio |
 |---|---|---|
-| `00-MASTER-PLAN.md` v1.2 | D-MP | 18 |
+| `00-MASTER-PLAN.md` v1.4 | D-MP | 18 |
 | `01-ARCHITECTURE.md` | D-A | 21 |
 | `02-CONVENTIONS.md` | D-C | 21 |
 | `03-DATA-MODEL.md` | D-D | 21 |
@@ -285,7 +285,7 @@ Lista cronologica per quando vanno chiuse.
 - DECISION-OPEN-011 (conferma sede legale): Merari
 - DECISION-OPEN-012 (distribuzione 30 query baseline): Claudio + Alessio
 - DECISION-OPEN-DE-001 (DNS provider): Merari
-- ~~DECISION-OPEN-T-001~~ ✅ Chiusa 2026-05-11: Upstash diretto (Fly.io non ha Redis add-on integrato)
+- ~~DECISION-OPEN-T-001~~ ✅ Chiusa 2026-05-11: Upstash diretto in v1; alternativa M3+ Redis self-hosted in container Docker sulla stessa VM Oracle (24GB RAM oversize)
 
 #### Pre-M2
 
@@ -329,7 +329,7 @@ Lista cronologica per quando vanno chiuse.
 - DECISION-OPEN-AN-002 (automazione 30 query timing)
 - DECISION-OPEN-AN-005 (Sentry)
 - DECISION-OPEN-AN-006 (Heatmap landing)
-- ~~DECISION-OPEN-DE-002~~ ✅ Chiusa 2026-05-11: region Fly.io MEX (prod) + MIA (staging)
+- ~~DECISION-OPEN-DE-002~~ ✅ Chiusa 2026-05-11: region Oracle Cloud **Mexico Central `mx-queretaro-1`** (prod) — ottimizza 17/30 query baseline priority alta + data residency LFPDPPP MX-aligned. Staging come 2° container sulla stessa VM (M3+). Fallback: mx-monterrey-1 o sa-saopaulo-1 se ARM A1 capacity non disponibile.
 - DECISION-OPEN-DE-008 (cost cap aumento $30→$65)
 
 #### Pre-M5
@@ -426,9 +426,13 @@ URL e doc che Claudio (o Claude Code) consulterà durante lo sviluppo.
 
 ### 9.3 Tool documentation
 
-- Fly.io (hosting canonico v1.3): https://fly.io/docs/
+- Oracle Cloud Always Free (hosting canonico v1.4): https://www.oracle.com/cloud/free/
+- Caddy (reverse proxy + TLS auto): https://caddyserver.com/docs/
+- Tailscale (SSH sicuro): https://tailscale.com/kb/
+- Watchtower (auto-update Docker): https://containrrr.dev/watchtower/
 - Upstash (Redis free tier): https://upstash.com/docs/redis
-- Railway (fallback option, non in uso): https://docs.railway.app/
+- Fly.io (deprecato come opzione, eliminato free tier perpetuo 2024): https://fly.io/docs/
+- Railway (fallback paid se Oracle non disponibile): https://docs.railway.app/
 - Cal.com API: https://cal.com/docs/api-reference/v2/introduction
 - HubSpot API: https://developers.hubspot.com/docs/api/overview
 - Resend: https://resend.com/docs
@@ -480,6 +484,7 @@ Aggiornato ad ogni sessione di lavoro significativa.
 | 1.0 | 2026-05-10 | Stesura iniziale post-completion 13 file blueprint. M0 al 93%, pending M0.2 (decisioni Merari) e M0.3 (harmony pass). Discrepanza timeline MASTER-PLAN vs MILESTONES annotata in HC-001. Stima ricalibrata 6-7 mesi M0→M4 con Claude Code che scrive codice (vs 11 mesi senza). |
 | 1.1 | 2026-05-11 | **Harmony pass M0.3 completato**. 12 incongruenze HC-001 → HC-012 risolte (vedi sez. 7). MASTER-PLAN bumped a v1.2 (timeline + conteggio file). README aggiornato (pivot LATAM + valuta USD). 05-TOOLS-TIER2 sez. 10 D-T2 aggiunta (21 decisioni). 09-DEPLOYMENT Dockerfile/railway.toml aggiunti. Totale decisioni canoniche locked: 253 (vs ~210 stimate in v1.0). M0 ora al 98% — resta solo M0.2 (decisioni Merari). |
 | 1.2 | 2026-05-11 | **M0.2 chiuso parzialmente**: M0.2.1 (budget $0 target, Fly.io free tier — D-MP-002 ricalibrata), M0.2.2 (sede Messico), M0.2.3 (repo pubblico), M0.2.5 (org `segmenta-ai`). Restano: BL-004 (DNS access — solo a M1.1 quando deploy ready) e BL-006/007 (booking + CRM — gestiti da adapter pattern, non bloccanti). MASTER bumped a v1.3, 09-DEPLOYMENT bumped a v1.2 (migrazione completa Railway → Fly.io: sez. 4, 7, 9, 12.3 riscritte; fly.toml + fly.staging.toml; cost projection ricalcolata a $0/mese M0-M3). DECISION-OPEN-004 chiusa (Resend), DECISION-OPEN-005 chiusa (org segmenta-ai), DECISION-OPEN-011 chiusa (Messico), DECISION-OPEN-DE-002 chiusa (region MEX/MIA). M0 al 99% — pronto per M1 kickoff. |
+| 1.3 | 2026-05-11 | **Ricalibrazione hosting Fly.io → Oracle Cloud Always Free**. Motivazione: Claudio ha verificato che Fly.io ha eliminato free tier perpetuo nel 2024 (richiede $5 credit + carta), incompatibile con vincolo "$0 hard". Comparativa Vercel/Cloudflare/Render fatta. Decisione: **Oracle Cloud Always Free** (1 VM ARM 4vCPU+24GB RAM perpetuo). MASTER v1.4 D-MP-002, 09-DEPLOYMENT v1.3 (sez. 4 riscritta con setup VPS step-by-step + docker-compose.yml + Caddyfile + Tailscale; sez. 7 nuova architettura ghcr.io + Watchtower; .env file su VM al posto di flyctl secrets). 01-ARCHITECTURE v1.3 stack tabella aggiornata. MILESTONES v1.3 M1.5 task riscritti (3-4h bootstrap VPS). DECISION-OPEN-DE-002 chiusa diversamente (São Paulo). DECISION-OPEN-T-001 chiusa diversamente (Upstash + alternativa Redis self-hosted). README aggiornato con setup Oracle. **M0 ancora al 99%** — pronto per M1 kickoff con setup Oracle ~3-4h. |
 
 ---
 

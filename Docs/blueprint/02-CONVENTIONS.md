@@ -7,7 +7,7 @@
 | **Data** | 2026-05-11 |
 | **Status** | Approvato (post harmony pass M0.3) |
 | **File n.** | 02 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.2 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4 |
 | **File correlati** | `01-ARCHITECTURE.md`, `09-DEPLOYMENT.md` |
 
 ---
@@ -56,7 +56,7 @@ Coerentemente con D-MP-001 e D-MP-007 del MASTER-PLAN, il progetto è bilingue p
 ### 2.2 Razionale
 
 - **Identificatori in spagnolo** allineano col mercato target. Se domani assumiamo un dev LATAM, il codice è leggibile per loro. Se serve presentare il repo a un cliente messicano, è coerente.
-- **Log e commit in inglese** sono per Claudio e per gli strumenti — GitHub, Fly.io, log aggregator. Inglese standard tecnico.
+- **Log e commit in inglese** sono per Claudio e per gli strumenti — GitHub, Oracle Cloud, log aggregator. Inglese standard tecnico.
 - **Documentazione blueprint in italiano** è per Claudio — lingua nativa, massima precisione concettuale.
 - **Tool descriptions in ES LATAM-neutral** sono per l'LLM: visto da Claude/ChatGPT, deve sembrare un'API spagnola autentica. *Mai inserire termini italiani nelle descriptions visibili agli utenti finali — quello rivelerebbe l'origine del codice.*
 
@@ -1163,7 +1163,7 @@ Step 8 — merge
 Step 9 — staging deploy
 - deploy-staging.yml triggered su develop
 - Container builded e pushed
-- Fly.io deploy
+- Oracle Cloud deploy
 - Smoke test post-deploy passa
 
 Step 10 — manual verification staging

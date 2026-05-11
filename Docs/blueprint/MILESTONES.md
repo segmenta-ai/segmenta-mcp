@@ -3,11 +3,11 @@
 | Campo | Valore |
 |---|---|
 | **Progetto** | Segmenta MCP Server |
-| **Versione documento** | 1.2 |
+| **Versione documento** | 1.3 |
 | **Data** | 2026-05-11 |
-| **Status** | Approvato (post harmony pass M0.3 + chiusura M0.2 parziale) |
+| **Status** | Approvato (post ricalibrazione hosting Oracle Cloud) |
 | **File n.** | non numerato — file di pianificazione operativa |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.3 (sez. 7 roadmap macro — ~6-7 mesi) |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4 (sez. 7 roadmap macro — ~6-7 mesi) |
 | **File correlati** | tutti i 12 file numerati 00-11 |
 
 ---
@@ -124,8 +124,8 @@ Documentazione blueprint completa e revisionata. Stack tecnico bloccato. Decisio
 
 | Task | Status | Stima | Owner | Dipendenze |
 |---|---|---|---|---|
-| M0.1.1 — `00-MASTER-PLAN.md` v1.2 | ✅ Completato | 3h | Claude+Claudio | — |
-| M0.1.2 — `01-ARCHITECTURE.md` v1.1 | ✅ Completato | 2h | Claude+Claudio | M0.1.1 |
+| M0.1.1 — `00-MASTER-PLAN.md` v1.4 | ✅ Completato | 3h | Claude+Claudio | — |
+| M0.1.2 — `01-ARCHITECTURE.md` v1.3 | ✅ Completato | 2h | Claude+Claudio | M0.1.1 |
 | M0.1.3 — `02-CONVENTIONS.md` v1.1 | ✅ Completato | 2h | Claude+Claudio | M0.1.1 |
 | M0.1.4 — `03-DATA-MODEL.md` v1.1 | ✅ Completato | 2h | Claude+Claudio | M0.1.2 |
 | M0.1.5 — `04-TOOLS-TIER1.md` v1.0 | ✅ Completato | 2h | Claude+Claudio | M0.1.4 |
@@ -252,10 +252,11 @@ Critico per non avere "demo data" in production.
 
 | Task | Stima | Dipendenze |
 |---|---|---|
-| M1.5.1 — Setup Fly.io account + GitHub org `segmenta-ai` + 2 app (`segmenta-mcp-prod` region MEX, `segmenta-mcp-staging` region MIA) | 1.5h | M0.2.5 |
-| M1.5.2 — Dockerfile multi-stage build (vedi 09-DEPLOYMENT sez. 3.3) + `.dockerignore` (sez. 3.4) | 1.5h | M1.2.11 |
-| M1.5.3 — Setup Upstash Redis free tier + binding `REDIS_URL` per entrambi env | 0.5h | M1.5.1 |
-| M1.5.4 — Configurare Fly.io secrets (`flyctl secrets set`) per entrambi env (vedi `.env.example` sez. 9.5) | 1h | M1.5.3 |
+| M1.5.1 — Setup Oracle Cloud Always Free: account + 1 VM ARM Ampere (4 vCPU, 24GB RAM) region São Paulo + bootstrap Linux (Ubuntu 22.04 LTS, UFW, fail2ban, unattended-upgrades) — playbook in 09-DEPLOYMENT sez. 4.4 | 3-4h | M0.2.5 |
+| M1.5.2 — Dockerfile multi-stage build ARM64 (vedi 09-DEPLOYMENT sez. 3.3) + `.dockerignore` (sez. 3.4) | 1.5h | M1.2.11 |
+| M1.5.3 — Setup Upstash Redis free tier + binding `REDIS_URL` in `.env` | 0.5h | M1.5.1 |
+| M1.5.4 — Setup Tailscale (SSH sicuro VM, chiudi porta 22 pubblica) + creare `/opt/segmenta-mcp/.env` (chmod 600) con tutte le secrets (vedi 09-DEPLOYMENT sez. 4.5ter `.env.example`) | 1h | M1.5.3 |
+| M1.5.4bis — Setup Caddyfile + docker-compose.yml in `/opt/segmenta-mcp/` (clone repo); `docker compose up -d`; verifica HTTPS auto via Let's Encrypt | 1h | M1.5.4 |
 | M1.5.5 — DNS records `mcp-staging` e `mcp` (Cloudflare/altro) | 1h | M0.2.4 |
 | M1.5.6 — Verifica TLS Let's Encrypt automatico | 0.5h | M1.5.5 |
 | M1.5.7 — `deploy-staging.yml` GitHub Action smoke test | 1.5h | M1.5.5 |
@@ -316,7 +317,7 @@ Critico per non avere "demo data" in production.
 ### 5.6 Risk
 
 - **R1.1**: Dati case study insufficienti (Merari non ottiene consensi) → `case_studies.json` con < 5 entry. Mitigazione: anonimizzazione obbligatoria di default per casi senza consenso esplicito (D-D-004).
-- **R1.2**: Fly.io down o free tier deprecato il giorno del go-live → ritardo deploy. Mitigazione: Railway $5/mese fallback (vedi 09-DEPLOYMENT sez. 4.1) — Dockerfile è portabile.
+- **R1.2**: Oracle Cloud Always Free deprecato o quota cambiata → ritardo deploy. Mitigazione: Hetzner VPS €4/mese o Railway $5/mese fallback (vedi 09-DEPLOYMENT sez. 4.1) — Dockerfile portabile, `docker-compose.yml` riusabile su qualsiasi VPS Linux.
 - **R1.3**: Pydantic validation rejecta dati reali → JSON da rifare. Mitigazione: validation early in M1.4.6 prima di deploy.
 - **R1.4**: Sito Hostinger di `segmentamarketing.com` non permette DNS modifica fluida → ritardo CNAME setup. Mitigazione: M0.2.4 chiusura DNS access prima di M1.
 
@@ -911,6 +912,7 @@ Ogni incident P0/P1 (sez. 13 di `09-DEPLOYMENT.md`) genera `Docs/incidents/YYYY-
 | 1.0 | 2026-05-10 | Claude (proposta) + Claudio (revisione) | Prima stesura: M0-M5 dettagliato con ~215 task granulari, stime ore, dipendenze cross-milestone, quality gates, cadenza comunicazione. Timeline ricalibrata realistica: ~11 mesi M0→M4 (vs 12-13 settimane MASTER-PLAN v1.0/v1.1 — discrepanza segnalata in sez. 3, HC-001). |
 | 1.1 | 2026-05-11 | Claude (harmony pass M0.3) + Claudio (review) | **HC-001 risolta**: MASTER-PLAN bumped a v1.2 con timeline ~6-7 mesi (assume Claude Code scrive codice). MILESTONES rimane source of truth granulare; ora coerente con MASTER. **HC-009**: linea 113 conteggio file aggiornato a 12 numerati + MILESTONES + SESSION-STATE + README. M0.1.13 status ✅. M0.3 (harmony pass) status ✅ con tutti subtask completati. M0.1.15 nuovo task per README aggiornato. |
 | 1.2 | 2026-05-11 | Claude + Claudio (chiusura M0.2.1) | **M1.5.1-M1.5.4 aggiornati**: Setup hosting passa da Railway a Fly.io free tier. M1.5.1 ora include creazione 2 Fly.io app + region MEX (prod) + MIA (staging). M1.5.3 setup Upstash Redis (Fly.io non ha Redis add-on integrato). M1.5.4 secrets via `flyctl secrets set`. **R1.2 risk** rivisto: ora Fly.io down → fallback Railway. Allineato con MASTER v1.3 e 09-DEPLOYMENT v1.2. |
+| 1.3 | 2026-05-11 | Claude + Claudio (ricalibrazione hosting Oracle Cloud) | **M1.5.1-M1.5.4bis riscritti**: Setup hosting passa da Fly.io a **Oracle Cloud Always Free** (D-MP-002 v1.4). M1.5.1 ora 3-4h (include bootstrap VPS Ubuntu + UFW + fail2ban). M1.5.4 include Tailscale SSH + .env con secrets locale. M1.5.4bis nuovo task per Caddyfile + docker-compose.yml + verifica HTTPS Let's Encrypt. R1.2 risk: ora Oracle Always Free deprecato → fallback Hetzner/Railway. Allineato con MASTER v1.4 e 09-DEPLOYMENT v1.3. |
 
 ---
 

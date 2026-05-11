@@ -7,7 +7,7 @@
 | **Data** | 2026-05-10 |
 | **Status** | Draft (in revisione) |
 | **File n.** | 04 di 12 numerati |
-| **Documento padre** | `00-MASTER-PLAN.md` v1.3, `01-ARCHITECTURE.md` v1.2, `03-DATA-MODEL.md` v1.1 |
+| **Documento padre** | `00-MASTER-PLAN.md` v1.4, `01-ARCHITECTURE.md` v1.3, `03-DATA-MODEL.md` v1.1 |
 | **File correlati** | `02-CONVENTIONS.md`, `05-TOOLS-TIER2.md`, `06-TOOLS-TIER3.md`, `11-ANALYTICS.md` |
 
 ---
