@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1.7
-# Segmenta MCP Server — multi-stage ARM64 build per Oracle Cloud Always Free
+# Segmenta MCP Server — multi-stage build (x86_64 / arm64)
+# Hosting canonico v1.5: Google Cloud Run (us-central1, linux/amd64)
+# Portabile: stesso Dockerfile gira anche su Hetzner/Oracle/VPS Linux arm64
 
 # ---- Stage 1: build dependencies con uv ----
 FROM python:3.12-slim AS builder
@@ -13,17 +15,16 @@ COPY --from=ghcr.io/astral-sh/uv:0.5 /uv /uvx /usr/local/bin/
 
 WORKDIR /app
 
-COPY pyproject.toml uv.lock* ./
+COPY pyproject.toml uv.lock* README.md ./
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project --no-dev || \
+# Senza --mount=type=cache per compatibilità con Cloud Build (Docker classic, no BuildKit)
+RUN uv sync --frozen --no-install-project --no-dev || \
     uv sync --no-install-project --no-dev
 
 COPY src/ ./src/
 COPY data/ ./data/
 
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev || uv sync --no-dev
+RUN uv sync --frozen --no-dev || uv sync --no-dev
 
 # ---- Stage 2: runtime minimal ----
 FROM python:3.12-slim AS runtime

@@ -180,7 +180,7 @@ Discrepanza con MASTER-PLAN sez. 7 (12-13 settimane) **rimane significativa**. P
 | BL-001 | ~~Decisione Merari su budget M0-M4~~ | Merari | 🟢 Chiuso 2026-05-11: $0 target perpetuo, Oracle Cloud Always Free (M0.2.1) | 1gg |
 | BL-002 | ~~Decisione Merari su sede legale Messico LFPDPPP~~ | Merari | 🟢 Chiuso 2026-05-11: Messico confermato (M0.2.2) | 1gg |
 | BL-003 | ~~Decisione Merari su repo GitHub pubblico~~ | Merari | 🟢 Chiuso 2026-05-11: pubblico confermato (D-MP-008) | 1gg |
-| BL-004 | Accesso DNS `segmentamarketing.com` | Merari | 🟡 Da chiudere a M1.1 quando VM Oracle provisionata (A record `mcp.segmentamarketing.com` → IP pubblico VPS) | 1gg |
+| BL-004 | Accesso DNS `segmentamarketing.com` (Hostinger) | Merari | 🟢 Parzialmente chiuso 2026-05-12: Merari ha aggiunto record DNS Resend (DKIM + SPF + MX), dominio mcp.segmentamarketing.com VERIFIED. Resta A record `mcp.segmentamarketing.com` → IP VM Oracle (da aggiungere subito dopo provisioning VM, M1.5.1). DECISION-OPEN-DE-001 chiusa: provider DNS = **Hostinger** (non Cloudflare come presunto). | 2gg |
 | BL-005 | ~~Decisione GitHub account host~~ | Merari + Claudio | 🟢 Chiuso 2026-05-11: org `segmenta-ai` (M0.2.5) | 1gg |
 
 ### 5.2 Blocker P1 (impediscono M2)

@@ -1,0 +1,18 @@
+{
+  "_meta": {
+    "schema_version": "1.0.0",
+    "data_version": "0.0.1",
+    "ultima_actualizacion": "2026-05-12",
+    "nota": "Placeholder file. Verrà popolato con dati reali in M1.4 (Romina + Alessio). Vedi Docs/blueprint/03-DATA-MODEL.md sez. 7 per schema completo."
+  },
+  "categorias": {
+    "fundamentos": "Conceptos base de marketing digital",
+    "metricas": "Indicadores de rendimiento (KPI)",
+    "canales": "Canales de adquisición y conversión",
+    "tecnico": "Aspectos técnicos (SEO, sitemap, schema, ecc.)",
+    "analitica": "Analytics, tracking, attribution",
+    "emergente": "Tendenze emergenti (AI search, GEO, AEO)",
+    "legal": "Privacy, compliance, GDPR/LFPDPPP"
+  },
+  "terminos": {}
+}

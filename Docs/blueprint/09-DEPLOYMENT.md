@@ -87,7 +87,7 @@ Claudio è il solo dev. Le pratiche scelgono il **path che minimizza errori oper
                                 │ public traffic via :443
                                 ▼
             ┌──────────────────────────────────────┐
-            │  DNS provider (Cloudflare presunto)  │
+            │  Hostinger DNS                        │
             │  mcp.segmentamarketing.com           │
             │   → A record → Oracle public IP     │
             └──────────────────────────────────────┘
@@ -113,7 +113,7 @@ Claudio è il solo dev. Le pratiche scelgono il **path che minimizza errori oper
 | Container orchestration | Docker Compose (single-host) | App + Redis + Caddy in 3 container, network bridge interna |
 | Reverse proxy / TLS | Caddy (in container) | HTTPS automatico via Let's Encrypt, HSTS, HTTP/2, auto-renewal — zero config dopo install |
 | Database state | **Upstash Redis free tier** (10k cmd/giorno, 256MB) — alternativa M3+: Redis self-hosted in container sulla stessa VM | OAuth state, idempotency, rate limit |
-| DNS | DNS provider esistente Segmenta (Cloudflare presunto — DECISION-OPEN-DE-001) | A record → IP pubblico Oracle Cloud VPS |
+| DNS | **Hostinger** (DECISION-OPEN-DE-001 chiusa 2026-05-12) | A record `mcp.segmentamarketing.com` → IP pubblico Oracle VPS |
 | Remote SSH | Tailscale free (max 100 device personali) | SSH sicuro alla VPS senza esporre porta 22 al pubblico |
 | Monitoring uptime | UptimeRobot free | Probe `/health` ogni 5 min |
 | Monitoring app | Caddy access log + structlog stdout, scrapable via Prometheus su `/metrics` (scrape esterno opzionale) | Metriche realtime, logs persistiti su volume Docker |
@@ -252,11 +252,14 @@ Oracle Cloud Always Free è la scelta canonica post-ricalibrazione 2026-05-11 (t
 
 **VM (Compute Instance)**:
 - Shape: `VM.Standard.A1.Flex` (ARM Ampere)
-- OCPU: 4 (always free quota: fino a 4 ARM OCPU totali per tenant)
-- Memory: 24 GB (always free quota: fino a 24 GB ARM RAM totali per tenant)
+- **OCPU**: 2 (v1 iniziale) → upgrade gratuito a 4 quando ARM A1 capacity in Querétaro si libera
+- **Memory**: 12 GB (v1 iniziale) → upgrade gratuito a 24 GB con upgrade OCPU
+- Sempre dentro Always Free quota: 4 ARM OCPU + 24 GB RAM per tenant
 - OS: Ubuntu 22.04 LTS (Canonical-Ubuntu-22.04-aarch64-2024.X.X)
 - Boot volume: 50 GB (incluso in always free)
-- Block storage extra: 100 GB (per Docker volumes, log, backup) — quota always free 200 GB totali
+- Block storage extra: 100 GB disponibile (quota always free 200 GB totali)
+
+> **Nota capacity ARM A1 (storico noto Oracle)**: Querétaro AD-1 in genere ha capacity ARM scarsa per shape 4+24. Iniziamo con 2+12 (capacity disponibile al 1°-2° tentativo) e upgradiamo gratuitamente a 4+24 in M2-M3 quando capacity si libera (mediamente entro 1-2 settimane su account nuovi). FastMCP usa ~200 MB RAM, quindi 12 GB sono comunque oversize 50x.
 
 **Networking**:
 - VCN (Virtual Cloud Network) di default Oracle
@@ -561,7 +564,7 @@ REDIS_TLS=true
 
 # === Email (Resend) ===
 RESEND_API_KEY=re_xxxxxxxxxx
-RESEND_FROM_EMAIL=hola@mcp.segmentamarketing.com
+RESEND_FROM_EMAIL=hola@send.mcp.segmentamarketing.com
 
 # === CRM (HubSpot — DECISION-OPEN-003 default) ===
 HUBSPOT_PRIVATE_TOKEN=pat-na1-xxxxxxxxxx
@@ -677,10 +680,12 @@ Health check NON include integrations esterne (Cal.com, HubSpot). Loro down NON 
 mcp.segmentamarketing.com.       A      <PUBLIC_IP_ORACLE_VM>     ; es. 132.226.X.X
 mcp-staging.segmentamarketing.com. A    <PUBLIC_IP_ORACLE_VM>     ; stessa VM o 2ª se quota disponibile
 
-; Email (DKIM/SPF/DMARC) — vedi 08-INTEGRATIONS.md sez. 6.6
-mcp.segmentamarketing.com.       TXT    "v=spf1 include:_spf.resend.com ~all"
-resend._domainkey.mcp...         TXT    "k=rsa; p=MIGfMA0..."
-_dmarc.mcp...                    TXT    "v=DMARC1; p=quarantine; rua=mailto:dmarc@..."
+; Email Resend (DKIM/SPF/DMARC) — vedi 08-INTEGRATIONS.md sez. 6.6
+; Nota: Resend usa subdomain `send.mcp.segmentamarketing.com` come Return-Path
+resend._domainkey.mcp.segmentamarketing.com.  TXT  "p=MIGfMA0... (DKIM public key 400+ char)"
+send.mcp.segmentamarketing.com.   MX    10 feedback-smtp.<region>.amazonses.com.
+send.mcp.segmentamarketing.com.   TXT   "v=spf1 include:amazonses.com ~all"
+_dmarc.mcp.segmentamarketing.com. TXT   "v=DMARC1; p=quarantine; rua=mailto:dmarc@segmentamarketing.com; pct=100"
 
 ; OAuth metadata discovery (auto-served from server)
 ; No DNS record needed; il server espone /.well-known/oauth-authorization-server
@@ -1294,7 +1299,7 @@ Cataloghiamo tutte le env variables. Aggiornate quando se ne aggiungono.
 | `HUBSPOT_PRIVATE_TOKEN` | string | M2+ | CRM |
 | `HUBSPOT_PORTAL_ID` | string | M2+ | CRM identification |
 | `RESEND_API_KEY` | string | M2+ | Email |
-| `RESEND_FROM_EMAIL` | string | M2+ | `noreply@mcp.segmentamarketing.com` |
+| `RESEND_FROM_EMAIL` | string | M2+ | `hola@send.mcp.segmentamarketing.com` (Resend richiede subdomain `send.` per best deliverability) |
 | `SLACK_WEBHOOK_URL_LEADS` | string | M2+ | Slack alerts lead capture |
 | `SLACK_WEBHOOK_URL_ALERTS` | string | Yes | Slack alerts errors |
 | `IPINFO_TOKEN` | string | No | Geo IP (free tier OK senza token, paid con) |
@@ -1685,7 +1690,7 @@ Procedure operative per scenari ricorrenti. Da consultare durante incident, no d
 | **D-DE-003** | Branch strategy: develop→staging, main→production (D-C-004) | GitHub Flow esteso, semplice. |
 | **D-DE-004** | Rolling deploy con health check obbligatorio | Zero downtime su deploy normali. |
 | **D-DE-005** | TLS via Let's Encrypt (Oracle Cloud-managed) | Standard, no manutenzione. |
-| **D-DE-006** | DNS Cloudflare presunto (da confermare con Merari) | Veloce, programmable, default sviluppatore. |
+| **D-DE-006** | DNS **Hostinger** (confermato con Merari 2026-05-12) | Provider esistente Segmenta. Per Caddy + Let's Encrypt è sufficiente (no proxy/CDN davanti). Eventual upgrade a Cloudflare DNS in M3+ se serve DDoS mitigation. |
 | **D-DE-007** | CI: GitHub Actions con uv sync, ruff, mypy, pytest, validate_data | Stack coerente con `02-CONVENTIONS.md`. |
 | **D-DE-008** | Coverage minimum 80% su PR (hard fail) | D-C-012. |
 | **D-DE-009** | Smoke test post-deploy: health + discovery + 1 tool Tier 1 | Conferma deploy effettivo, non solo container running. |
@@ -1712,7 +1717,7 @@ Procedure operative per scenari ricorrenti. Da consultare durante incident, no d
 
 | ID | Decisione | Bloccare entro | Owner |
 |---|---|---|---|
-| **DECISION-OPEN-DE-001** | Conferma DNS provider attuale di segmentamarketing.com (Cloudflare presunto) | M1 | Merari |
+| ~~**DECISION-OPEN-DE-001**~~ | ~~Conferma DNS provider~~ → **Chiusa 2026-05-12**: Hostinger DNS. Merari ha aggiunto record Resend, può aggiungere A record VM Oracle quando ready. | ✅ Chiusa | Merari |
 | ~~**DECISION-OPEN-DE-002**~~ | ~~Region Oracle Cloud~~ → **Chiusa 2026-05-11**: D-DE-024 dichiara `mex` per prod + `mia` per staging. | ✅ Chiusa | Claudio |
 | **DECISION-OPEN-DE-003** | Sentry o equivalente per error tracking aggregato | M3 | Claudio |
 | **DECISION-OPEN-DE-004** | Status page pubblica (statuspage.io, BetterUptime) per trust signal | M5 | Merari + Claudio |

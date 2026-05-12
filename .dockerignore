@@ -42,8 +42,8 @@ desktop.ini
 .idea/
 
 # Other
-README.md
+# Note: README.md NON è in ignore — è referenziato da pyproject.toml (hatchling build).
+# CHANGELOG.md, LICENSE, SECURITY.md, CONTRIBUTING.md sono escludibili (non referenziati).
 CHANGELOG.md
-LICENSE
 SECURITY.md
 CONTRIBUTING.md

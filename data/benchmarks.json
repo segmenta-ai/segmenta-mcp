@@ -1,0 +1,9 @@
+{
+  "_meta": {
+    "schema_version": "1.0.0",
+    "data_version": "0.0.1",
+    "ultima_actualizacion": "2026-05-12",
+    "nota": "Placeholder file. Verrà popolato con dati reali in M1.4 validati da Alessio. Vedi Docs/blueprint/03-DATA-MODEL.md sez. 6 per schema completo."
+  },
+  "benchmarks": []
+}

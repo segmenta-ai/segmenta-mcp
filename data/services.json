@@ -1,0 +1,10 @@
+{
+  "_meta": {
+    "schema_version": "1.0.0",
+    "data_version": "0.0.1",
+    "ultima_actualizacion": "2026-05-12",
+    "moneda_primaria": "USD",
+    "nota": "Placeholder file. Verrà popolato con dati reali in M1.4 (Merari validation). Vedi Docs/blueprint/03-DATA-MODEL.md sez. 4 per schema completo."
+  },
+  "servicios": []
+}

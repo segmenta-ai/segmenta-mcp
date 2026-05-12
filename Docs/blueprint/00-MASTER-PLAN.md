@@ -3,9 +3,9 @@
 | Campo | Valore |
 |---|---|
 | **Progetto** | Segmenta MCP Server |
-| **Versione documento** | 1.4 |
-| **Data** | 2026-05-11 |
-| **Status** | Approvato (post harmony pass M0.3 + chiusura M0.2 parziale + ricalibrazione hosting) |
+| **Versione documento** | 1.5 |
+| **Data** | 2026-05-12 |
+| **Status** | Approvato (post pivot hosting Oracle → Google Cloud Run) |
 | **File n.** | 00 di 14 documenti blueprint (12 numerati `00-11` + `MILESTONES.md` + `SESSION-STATE.md`; `README.md` è entry point pubblico separato) |
 | **Lingua** | Italiano (prosa) + spagnolo (identificatori e termini di marketing) |
 | **Repository** | `github.com/segmenta-ai/segmenta-mcp` (pubblico — D-MP-008; org dedicata confermata 2026-05-11 chiudendo DECISION-OPEN-005) |
@@ -315,7 +315,7 @@ Inoltre:
 - **Tempo Claudio**: 2-3h/settimana effettive sul progetto, condivise con Keeper v2, Chirsan, Numely, MePA.
 - **Budget infra**: **target $0/mese perpetuo** (Oracle Cloud Always Free + Resend free 100/giorno + Upstash Redis free 10k cmd/giorno; Redis self-hosted sulla stessa VM è opzione M3+ se Upstash insufficiente). Hard cap di sicurezza $30 USD/mese, mai superato senza approval Merari. M0.2.1 chiusa 2026-05-11.
 - **Stack obbligati**: Python (skill esistente Claudio), HTTPS (requisito Anthropic/OpenAI), MCP protocol (dato di partenza).
-- **Hosting**: **Oracle Cloud Always Free Tier** (D-MP-002 v1.4). VPS Linux Ubuntu 22.04 LTS con Docker + Caddy reverse proxy. Hostinger shared *non è adatto* (no endpoint persistente). Setup iniziale ~3-4h, poi manutenzione minima grazie a Caddy auto-TLS + Watchtower auto-update + `unattended-upgrades`.
+- **Hosting**: **Google Cloud Run** (D-MP-002 v1.5). Managed container serverless: zero Linux/VPS/SSH da gestire. TLS auto + custom domain mapping incluso. Dockerfile resta identico (linux/amd64). Region us-central1 (Iowa), ~80ms da MX. Setup ~30 min totale.
 - **Dominio**: `segmentamarketing.com` è esistente e gestito esternamente — accesso DNS via Merari.
 - **Sede legale primaria**: **Messico** (M0.2.2 chiusa 2026-05-11). Privacy policy giurisdizione primaria LFPDPPP, addendum GDPR/CCPA.
 
@@ -327,8 +327,9 @@ Inoltre:
 - L'integrazione booking (vedi DECISION-OPEN-002) è disponibile per tutta la durata del progetto.
 - Claudio ha un Mac/PC funzionante con Docker installato per i deploy.
 - Sede legale Messico confermata (Merari = responsable del tratamiento per LFPDPPP).
-- **Oracle Cloud mantiene Always Free Tier perpetuo** (politica dichiarata ufficialmente). Se deprecato in futuro: migrazione a Hetzner VPS €4/mese o Railway $5/mese — il Dockerfile è portabile.
-- Claudio accetta ruolo sysadmin part-time (~15 min/mese) per la VPS. Ubuntu LTS + auto-updates riducono il rischio.
+- **Google Cloud Run mantiene free tier perpetuo** (2M req/mese, dichiarato in https://cloud.google.com/run/pricing#free-tier). Se deprecato in futuro: migrazione a Hetzner €4/mese o altro VPS con Docker. Dockerfile portabile.
+- Claudio NON deve gestire VPS/Linux: Cloud Run è completamente managed. Solo gestione via gcloud CLI per deploy.
+- Cold start 1-3s accettato per Tier 1 (público, no auth). Per Tier 2/3 valutare min_instances=1 ($5/mese) o keep-warm con UptimeRobot.
 
 ### 10.3 Dipendenze esterne
 
@@ -336,9 +337,9 @@ Inoltre:
 - Account OpenAI Plus o Pro per Claudio (per Developer Mode in ChatGPT)
 - Account piattaforma booking (DECISION-OPEN-002 — chiusa in M2 con Merari)
 - Account Resend (email transactional — DECISION-OPEN-004 chiusa 2026-05-11: Resend free tier 100/giorno è sufficiente M1-M3)
-- **Account Oracle Cloud** (Always Free Tier, richiede verifica carta di credito ma non viene mai addebitata su tier free; D-MP-002 v1.4)
-- **Account Upstash** (Redis free tier 10k cmd/giorno) — alternativa M3+: Redis self-hosted sulla stessa VM Oracle
-- **Account Tailscale** (free per uso personale, max 100 dispositivi) — SSH sicuro alla VPS senza esporre porta 22 pubblica
+- **Account Google Cloud** (free trial $300 credit 90gg + free tier perpetuo Cloud Run dopo; D-MP-002 v1.5)
+- **Account Upstash** (Redis free tier 10k cmd/giorno) — Cloud Run è stateless, Redis esterno obbligatorio
+- ~~Account Tailscale~~ — non più necessario (Cloud Run no SSH)
 - Account GitHub org `segmenta-ai` (M0.2.5 chiusa 2026-05-11 — DECISION-OPEN-005 chiusa)
 - Privacy policy LFPDPPP — possibile review legale messicana (~500-1500 USD una tantum, vedi `08-INTEGRATIONS.md` e `10-GTM.md`)
 
@@ -368,7 +369,7 @@ Decisioni bloccate in v1.1 di questo MASTER-PLAN. Cambiarle richiede aggiornamen
 | ID | Decisione | Motivazione sintetica |
 |---|---|---|
 | **D-MP-001** | Lingua: italiano (prosa blueprint) + spagnolo (identificatori, tool descriptions, termini di marketing) | Coerenza col mercato target Segmenta (LATAM/MX/US/EU) e con il codice già scaffoldato. |
-| **D-MP-002** | Stack: FastMCP Python + **Oracle Cloud Always Free** (1 VM ARM Ampere, 4 vCPU, 24GB RAM) + Caddy (TLS auto) + Docker Compose | Costo $0/mese **perpetuo** (Always Free Tier dichiarato da Oracle). Setup iniziale ~3-4h (Linux + Docker + Caddy + Tailscale), poi steady-state ~15 min/mese manutenzione. Zero vendor lock-in (è VPS Linux puro). Ricalibrato in v1.4 (2026-05-11) dopo che Fly.io ha eliminato free tier perpetuo nel 2024. **Region Mexico Central (Querétaro, `mx-queretaro-1`)** = ~5-30ms da MX (mercato primario), ~30-80ms da US-hispanic (Miami/TX), ottimizza 17/30 query baseline priority alta. Risorse oversize permettono futuri tool senza scaling. |
+| **D-MP-002** | Stack: FastMCP Python + **Google Cloud Run** (managed container serverless) | Costo $0/mese su free tier perpetuo (2M req/mese, 360k vCPU-sec, 180k GB-sec). Setup ~30 min (no SSH, no Linux, no reverse proxy — Cloud Run gestisce TLS + scaling). Ricalibrato in v1.5 (2026-05-12) dopo che Oracle Always Free in region Querétaro è risultata cronicamente saturated per nuovi account (capacity sia ARM A1 che x86 E2.1.Micro esaurita). **Region**: `us-central1` (Iowa) — ~80ms da MX, accettabile per MCP (1 call/conversation). **Trade-off**: cold start 1-3s se idle (Cloud Run scala a 0); mitigato con UptimeRobot warming ping ogni 14 min. Per Tier 2 OAuth M2+ valutare `min_instances=1` ($5/mese) se cold start rompe magic link flow. |
 | **D-MP-003** | Subdomain dedicato: `mcp.segmentamarketing.com` | Trust signal, separazione concerns col sito principale, HTTPS isolato. |
 | **D-MP-004** | Tier system 3 livelli (público / lead capture / advanzado) | Disciplina commerciale: valore prima della conversione, conversione prima della retention. |
 | **D-MP-005** | Pace: 2-3h/sett, timeline M0→M4 ~6-7 mesi calendar (vedi sez. 7) | Realistico dato il contesto Claudio multi-progetto + assunzione Claude Code scrive codice. Stima v1.0 (12-13 settimane) ricalibrata in v1.2. |
@@ -474,6 +475,7 @@ Riferimento rapido di "dove sta cosa". Tutti i percorsi sono relativi a `Docs/bl
 | 1.2 | 2026-05-11 | Claude (harmony pass M0.3) + Claudio (review) | **Timeline ricalibrata** (HC-001 risolta): sez. 7 ora dichiara ~6-7 mesi M0→M4 con assunzione Claude Code scrive codice (vs ~12-13 settimane v1.0/v1.1 ottimista). D-MP-005 aggiornato di conseguenza. **Conteggio file** (HC-009): header chiarisce 14 documenti blueprint + README separato. **Status** passato da "Draft (in revisione)" a "Approvato". |
 | 1.3 | 2026-05-11 | Claude + Claudio (chiusura M0.2) | **D-MP-002 ricalibrata**: stack hosting passa da **Railway a Fly.io free tier** (target $0/mese, region MEX + MIA). Vincoli sez. 10.1 budget aggiornato (target $0, hard cap $30). DECISION-OPEN-004 chiusa (Resend), -005 chiusa (org `segmenta-ai`), -011 chiusa (Messico). Repository ufficiale ora `github.com/segmenta-ai/segmenta-mcp`. M0.2.1, M0.2.2, M0.2.5 chiuse. |
 | 1.4 | 2026-05-11 | Claude + Claudio (cambio hosting per stabilità free tier) | **D-MP-002 ri-ricalibrata**: stack hosting passa da **Fly.io a Oracle Cloud Always Free Tier** (1 VM ARM Ampere, 4 vCPU, 24GB RAM, $0/mese **perpetuo**). Motivazione: Fly.io ha eliminato free tier perpetuo nel 2024 (richiede $5 credit minimo + carta), incompatibile con vincolo Claudio "$0/mese hard". Oracle Always Free è dichiarato perpetuo nelle policy ufficiali. Trade-off accettato: setup iniziale 3-4h vs PaaS, manutenzione mensile ~15 min (Caddy auto-TLS + Watchtower auto-update + unattended-upgrades). Zero vendor lock-in (VPS Linux puro, Dockerfile portabile). Region São Paulo o Phoenix (~80-100ms da MX, accettabile). |
+| 1.5 | 2026-05-12 | Claude + Claudio (pivot hosting per impossibilità provisioning Oracle) | **D-MP-002 pivottata a Google Cloud Run**. Motivazione: Oracle Always Free Querétaro è cronicamente saturated per nuovi account (testato 2026-05-12 con 1h+ di tentativi: ARM A1 "Out of capacity" + E2.1.Micro x86 "Out of capacity" + rate limit "Too many requests"). Provisioning di fatto impossibile per nuovi account in region nuove come Querétaro. Cloud Run elimina il problema (serverless, no capacity issues). Trade-off: cold start 1-3s se idle (vs always-on VPS); accettabile per Tier 1 público. Free tier Cloud Run perpetuo (2M req/mese >> volume v1). Stack semplificato: niente più Caddy/Watchtower/Tailscale/SSH/Linux. Dockerfile identico. Setup ~30 min vs 3-4h Oracle. |
 
 ---
 

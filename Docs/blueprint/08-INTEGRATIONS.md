@@ -602,7 +602,9 @@ DECISION-OPEN-004 risolta in M2 richiede setup DNS:
 mcp.segmentamarketing.com. TXT  "v=spf1 include:_spf.resend.com ~all"
 
 ; DKIM (provider-specific, esempio Resend)
-resend._domainkey.mcp.segmentamarketing.com. TXT  "k=rsa; p=MIGfMA0..."
+resend._domainkey.mcp.segmentamarketing.com.  TXT  "p=MIGfMA0... (DKIM pubkey ~400 char)"
+send.mcp.segmentamarketing.com.               MX   10 feedback-smtp.<region>.amazonses.com.
+send.mcp.segmentamarketing.com.               TXT  "v=spf1 include:amazonses.com ~all"
 
 ; DMARC
 _dmarc.mcp.segmentamarketing.com. TXT  "v=DMARC1; p=quarantine; rua=mailto:dmarc@segmentamarketing.com; pct=100"
