@@ -5,12 +5,12 @@
 | Campo | Valore |
 |---|---|
 | **Progetto** | Segmenta MCP Server |
-| **Versione blueprint** | v1.3 (M0.3 harmony pass + M0.2 chiusura + ricalibrazione hosting Oracle Cloud; MASTER v1.4) |
-| **Versione server** | non ancora rilasciato |
-| **Status macro** | 🟢 M0 QUASI COMPLETATO — restano solo BL-004 (DNS) e BL-006/007 (booking + CRM in M2) |
-| **Ultima modifica** | 2026-05-11 |
-| **Prossima azione** | Setup account **Oracle Cloud Always Free** + Upstash + GitHub org `segmenta-ai` + Tailscale; coordinare con Merari per BL-004 (DNS A record verso IP VPS) e DECISION-OPEN-002/003 in M2 |
-| **Documenti governanti** | `00-MASTER-PLAN.md` v1.4 + tutti i 12 file numerati + `MILESTONES.md` |
+| **Versione blueprint** | v1.4 (deploy live su Cloud Run + custom domain; MASTER v1.5) |
+| **Versione server** | **v0.0.1 LIVE** su https://mcp.segmentamarketing.com |
+| **Status macro** | 🟢 **M1.5 COMPLETATO** — server live, TLS automatico, auto-deploy pipeline operativo |
+| **Ultima modifica** | 2026-05-13 |
+| **Prossima azione** | **M1.2** kickoff: implementare i 4 tool Tier 1 FastMCP (obtener_servicios, caso_de_estudio, benchmark_sector, glosario_marketing) |
+| **Documenti governanti** | `00-MASTER-PLAN.md` v1.5 + tutti i 12 file numerati + `MILESTONES.md` |
 
 ---
 
