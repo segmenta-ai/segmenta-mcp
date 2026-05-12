@@ -1,0 +1,96 @@
+name: Deploy to Cloud Run
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:  # permette trigger manuale dalla UI GitHub
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false  # vogliamo finire ogni deploy
+
+env:
+  GCP_PROJECT_ID: segmenta-mcp-prod
+  GCP_PROJECT_NUMBER: "501867710647"
+  GCP_REGION: us-central1
+  CLOUD_RUN_SERVICE: segmenta-mcp
+  WIF_PROVIDER: projects/501867710647/locations/global/workloadIdentityPools/github-actions/providers/github
+  WIF_SERVICE_ACCOUNT: github-deploy@segmenta-mcp-prod.iam.gserviceaccount.com
+
+jobs:
+  deploy:
+    name: Build + Deploy to Cloud Run
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write  # required for OIDC token
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Authenticate to GCP via Workload Identity Federation
+        id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.WIF_SERVICE_ACCOUNT }}
+          token_format: access_token
+
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Verify auth
+        run: gcloud config list && gcloud auth list
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        run: |
+          gcloud run deploy ${{ env.CLOUD_RUN_SERVICE }} \
+            --source . \
+            --region=${{ env.GCP_REGION }} \
+            --allow-unauthenticated \
+            --port=8000 \
+            --memory=512Mi \
+            --cpu=1 \
+            --min-instances=0 \
+            --max-instances=2 \
+            --quiet
+
+          URL=$(gcloud run services describe ${{ env.CLOUD_RUN_SERVICE }} \
+            --region=${{ env.GCP_REGION }} \
+            --format='value(status.url)')
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "Service URL: $URL"
+
+      - name: Smoke test deployed service
+        run: |
+          URL="${{ steps.deploy.outputs.url }}"
+          echo "Testing $URL/health..."
+          for i in {1..10}; do
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$URL/health" || echo "000")
+            if [ "$HTTP_CODE" = "200" ]; then
+              echo "Health check OK on attempt $i"
+              curl -s "$URL/health" | head -c 500
+              exit 0
+            fi
+            echo "Attempt $i: HTTP $HTTP_CODE, retry in 5s..."
+            sleep 5
+          done
+          echo "Health check FAILED after 10 attempts"
+          exit 1
+
+      - name: Job summary
+        if: success()
+        run: |
+          {
+            echo "## ✅ Deploy successful"
+            echo ""
+            echo "**Service**: \`${{ env.CLOUD_RUN_SERVICE }}\`"
+            echo "**Region**: \`${{ env.GCP_REGION }}\`"
+            echo "**URL**: ${{ steps.deploy.outputs.url }}"
+            echo "**Commit**: \`${{ github.sha }}\`"
+          } >> $GITHUB_STEP_SUMMARY
